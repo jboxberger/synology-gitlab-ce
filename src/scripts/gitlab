@@ -1,0 +1,289 @@
+#!/usr/bin/env bash
+. "$(dirname $0)"/common
+
+###########################################################
+# FUNCTIONS
+###########################################################
+help() {
+   # Display Help
+   echo "Syntax: gitlab <action> [<container>] [options]"
+   echo "arguments:"
+   echo "  action       - install or update"
+   echo "  container    - container name"
+   echo "options:"
+   echo "  --version    - GitLab CE version e.g. 13.4.3-ce.0"
+   echo "  --share      - destination folder which will contain shared gitlab files"
+   echo "  --port-ssh   - ssh host port"
+   echo "  --port-http  - http host port"
+   echo "  --port-https - https host port"
+   echo
+   echo "Example: gitlab install|update synology-gitlab-ce --version=13.4.3-ce.0 --share=gitlab-dir"
+   exit 0
+}
+
+###########################################################
+# DEFAULT VARIABLES
+###########################################################
+# defaults
+GITLAB_SSH_PORT_DEFAULT=30022
+GITLAB_HTTP_PORT_DEFAULT=30080
+GITLAB_HTTPS_PORT_DEFAULT=30443
+GITLAB_CONTAINER_NAME_DEFAULT="$PKG_NAME"
+GITLAB_SHARE_NAME_DEFAULT="$GITLAB_CONTAINER_NAME_DEFAULT"
+
+# interactive
+GITLAB_CONTAINER_NAME=""
+GITLAB_VERSION_TARGET=""
+GITLAB_SHARE_NAME=""
+GITLAB_SSH_PORT=0
+GITLAB_HTTP_PORT=0
+GITLAB_HTTPS_PORT=0
+
+
+
+###########################################################
+# PARAMETER HANDLING
+###########################################################
+PARAMS=""
+for i in "$@"
+do
+    case ${i} in
+      --version=*)
+          GITLAB_VERSION_TARGET="${i#*=}"
+      ;;
+      --share=*)
+          GITLAB_SHARE_NAME="${i#*=}"
+      ;;
+      --port-ssh=*)
+          GITLAB_SSH_PORT="${i#*=}"
+      ;;
+      --port-http=*)
+          GITLAB_HTTP_PORT="${i#*=}"
+      ;;
+      --port-https=*)
+          GITLAB_HTTPS_PORT="${i#*=}"
+      ;;
+      -h|--help)
+          help
+      ;;
+      *) # unknown option
+          PARAMS="$PARAMS \"$1\""
+      ;;
+    esac
+    shift
+done
+# set positional arguments in their proper place
+eval set -- "$PARAMS"
+
+EXECUTION_MODE="$1"
+if [ -z "$EXECUTION_MODE" ] || [ "$EXECUTION_MODE" != "install" ] && [ "$EXECUTION_MODE" != "update" ]; then
+  echo "error argument action not set!"
+  help
+fi
+
+GITLAB_CONTAINER_NAME="$2"
+if [ -z "$GITLAB_CONTAINER_NAME" ] ; then
+  GITLAB_CONTAINER_NAME="$GITLAB_CONTAINER_NAME_DEFAULT"
+fi
+
+###########################################################
+# PROCESSING
+###########################################################
+if [ "$USER" != "root" ]; then
+  echo "You must run this script as ROOT!"
+  exit
+fi
+check_dependencies "jq docker curl synowebapi synoshare"
+
+# system
+DOCKER_SHARE_PATH="$(synoshare --get docker | grep $'\t Path' | sed 's/.*\[\(.*\)].*/\1/')"
+DOCKER_SHARE_BASE_PATH=$(basename "$DOCKER_SHARE_PATH")
+GITLAB_IMAGE_NAME="gitlab/gitlab-ce"
+GITLAB_CONTAINER_CONFIG="$SCRIPTS_PATH/$GITLAB_CONTAINER_NAME_DEFAULT.json"
+GITLAB_CONTAINER_CONFIG_TEMPLATE="$SCRIPTS_PATH/templates/$GITLAB_CONTAINER_NAME_DEFAULT.template.json"
+GITLAB_VERSION_CURRENT="none"
+GITLAB_VERSION_LATEST="$(get_latest_version_number_from_dockerhub "$GITLAB_IMAGE_NAME")"
+
+# get current version
+synowebapi --exec api=SYNO.Docker.Container.Profile version=1 method=export name="$GITLAB_CONTAINER_NAME" 2> /dev/null | tail -n +4 | jq --slurp '.[0]' > "$GITLAB_CONTAINER_CONFIG" 2> /dev/null
+GITLAB_CONTAINER_CONFIG_CONTENT=$(cat "$GITLAB_CONTAINER_CONFIG")
+if [ ! -z "$GITLAB_CONTAINER_CONFIG_CONTENT" ] && [ "$GITLAB_CONTAINER_CONFIG_CONTENT" != "null" ]; then
+  GITLAB_VERSION_CURRENT=$(echo "$GITLAB_CONTAINER_CONFIG_CONTENT" | jq -r ".image")
+fi
+
+if [ "$EXECUTION_MODE" == "install" ] && [ "$GITLAB_VERSION_CURRENT" != "none" ]; then
+  echo "can not install, container $GITLAB_CONTAINER_NAME already exists"
+  exit  1
+elif [ "$EXECUTION_MODE" == "update" ] && [ "$GITLAB_VERSION_CURRENT" == "none" ]; then
+  echo "can not update, container $GITLAB_CONTAINER_NAME not installed"
+  exit  1
+fi
+
+if [ -z "$GITLAB_VERSION_TARGET" ]; then
+  read -ep "gitlab version [default (latest): $GITLAB_VERSION_LATEST]: " GITLAB_VERSION_TARGET
+  if [ -z "$GITLAB_VERSION_TARGET" ]; then
+    GITLAB_VERSION_TARGET="$GITLAB_VERSION_LATEST"
+  fi
+fi
+
+if [ "$EXECUTION_MODE" == "install" ]; then
+  if [ -z "$GITLAB_SHARE_NAME" ]; then
+    read -ep "directory name for gitlab? [default: $GITLAB_CONTAINER_NAME]: " GITLAB_SHARE_NAME
+    if [ -z "$GITLAB_SHARE_NAME" ]; then
+      GITLAB_SHARE_NAME="$GITLAB_CONTAINER_NAME"
+    fi
+  fi
+
+  if [ "$GITLAB_SSH_PORT" == "0" ]; then
+      read -ep "ssh port mapping 22:<host_port>? [default: $GITLAB_SSH_PORT_DEFAULT]: " GITLAB_SSH_PORT
+      if [ -z "$GITLAB_SSH_PORT" ] || [ "$GITLAB_SSH_PORT" == "22" ] ; then
+        GITLAB_SSH_PORT=$GITLAB_SSH_PORT_DEFAULT
+      fi
+  fi
+  validate_port "$GITLAB_SSH_PORT" 1
+
+  if [ "$GITLAB_HTTP_PORT" == "0" ]; then
+    read -ep "http port mapping 80:<host_port>? [default: $GITLAB_HTTP_PORT_DEFAULT]: " GITLAB_HTTP_PORT
+    if [ -z "$GITLAB_HTTP_PORT" ] || [ "$GITLAB_HTTP_PORT" == "80" ] ; then
+      GITLAB_HTTP_PORT=$GITLAB_HTTP_PORT_DEFAULT
+    fi
+  fi
+  validate_port "$GITLAB_HTTP_PORT" 1
+
+  if [ "$GITLAB_HTTPS_PORT" == "0" ]; then
+    read -ep "https port mapping 443:<host_port>? [default: $GITLAB_HTTPS_PORT_DEFAULT]: " GITLAB_HTTPS_PORT
+    if [ -z "$GITLAB_HTTPS_PORT" ] || [ "$GITLAB_HTTPS_PORT" == "443" ] ; then
+      GITLAB_HTTPS_PORT=$GITLAB_HTTPS_PORT_DEFAULT
+    fi
+  fi
+  validate_port "$GITLAB_HTTPS_PORT" 1
+fi
+
+echo "============================================================"
+echo "action          : $EXECUTION_MODE"
+echo "container       : $GITLAB_CONTAINER_NAME"
+echo "image           : $GITLAB_IMAGE_NAME"
+
+if [ "$EXECUTION_MODE" == "update" ]; then
+echo "version current : $(echo "$GITLAB_VERSION_CURRENT" | cut -f2 -d:)"
+echo "version new     : $GITLAB_VERSION_TARGET"
+else
+echo "version         : $(echo "$GITLAB_VERSION_TARGET" | cut -f2 -d:)"
+echo "share           : $GITLAB_SHARE_NAME"
+echo "ssh-port        : $GITLAB_SSH_PORT"
+echo "http-port       : $GITLAB_HTTP_PORT"
+echo "https-port      : $GITLAB_HTTPS_PORT"
+fi
+
+echo "============================================================"
+read -ep "proceed? [y/n]: " proceed
+if [ -z "$proceed" ] || [ "$proceed" != "y" ] && [ "$proceed" != "Y" ] ; then
+  exit 1
+fi
+
+###########################################################
+# PROCESSING
+###########################################################
+if [ "$EXECUTION_MODE" == "install" ]; then
+  if [ ! -f "$GITLAB_CONTAINER_CONFIG_TEMPLATE" ]; then
+     echo "template: $GITLAB_CONTAINER_CONFIG_TEMPLATE is missing, aborting!"
+     exit 1
+  else
+     cp -f "$GITLAB_CONTAINER_CONFIG_TEMPLATE" "$GITLAB_CONTAINER_CONFIG"
+  fi
+
+  mkdir -p "$DOCKER_SHARE_PATH/$GITLAB_SHARE_NAME/data"
+  sed -i -e "s|__SHARE_DATA__|/$DOCKER_SHARE_BASE_PATH/$GITLAB_SHARE_NAME/data|g" "$GITLAB_CONTAINER_CONFIG"
+
+  mkdir -p "$DOCKER_SHARE_PATH/$GITLAB_SHARE_NAME/logs"
+  sed -i -e "s|__SHARE_LOGS__|/$DOCKER_SHARE_BASE_PATH/$GITLAB_SHARE_NAME/logs|g" "$GITLAB_CONTAINER_CONFIG"
+
+  mkdir -p "$DOCKER_SHARE_PATH/$GITLAB_SHARE_NAME/config"
+  sed -i -e "s|__SHARE_CONFIG__|/$DOCKER_SHARE_BASE_PATH/$GITLAB_SHARE_NAME/config|g" "$GITLAB_CONTAINER_CONFIG"
+
+  sed -i -e "s|__PORT_SSH__|$GITLAB_SSH_PORT|g" "$GITLAB_CONTAINER_CONFIG"
+  sed -i -e "s|__PORT_HTTP__|$GITLAB_HTTP_PORT|g" "$GITLAB_CONTAINER_CONFIG"
+  sed -i -e "s|__PORT_HTTPS__|$GITLAB_HTTPS_PORT|g" "$GITLAB_CONTAINER_CONFIG"
+fi
+
+# set image
+echo $(jq --arg image "$GITLAB_IMAGE_NAME:$GITLAB_VERSION_TARGET" '.image = $image' $GITLAB_CONTAINER_CONFIG) > $GITLAB_CONTAINER_CONFIG
+echo $(jq --arg name "$GITLAB_CONTAINER_NAME" '.name = $name' $GITLAB_CONTAINER_CONFIG) > $GITLAB_CONTAINER_CONFIG
+
+# pull image
+pull_success=0
+if [ -z "$(docker images -q $GITLAB_IMAGE_NAME:$GITLAB_VERSION_TARGET 2> /dev/null)" ]; then
+  docker pull "$GITLAB_IMAGE_NAME:$GITLAB_VERSION_TARGET" && pull_success=1
+else
+  pull_success=1 # already exists
+fi
+
+if [ $pull_success -ne 1 ]; then
+  echo "failed to pull image $GITLAB_IMAGE_NAME:$GITLAB_VERSION_TARGET, aborted!"
+  exit 1
+fi
+
+if [ "$EXECUTION_MODE" == "update" ]; then
+  stop_response=$(synowebapi --exec api=SYNO.Docker.Container version=1 method=stop name="$GITLAB_CONTAINER_NAME" 2> /dev/null)
+  stop_ok=$(echo "$stop_response" | jq -r ".success")
+  if [ "$stop_ok" == "false" ]; then
+        echo "failed to stop container, aborting!"
+        echo "$stop_response"
+        exit 1
+  fi
+
+  delete_response=$(synowebapi --exec api=SYNO.Docker.Container version=1 method=delete name="$GITLAB_CONTAINER_NAME" force=true preserve_profile=false 2> /dev/null)
+  delete_ok=$(echo "$delete_response" | jq -r ".success")
+  if [ "$delete_ok" == "false" ]; then
+    echo "failed to delete container, aborting!"
+    echo "$delete_response"
+    exit 1
+  fi
+fi
+
+create_response=$(synowebapi --exec api=SYNO.Docker.Container version=1 method=create is_run_instantly=false profile="$(cat $GITLAB_CONTAINER_CONFIG)" 2> /dev/null)
+create_ok=$(echo "$create_response" | jq -r ".success")
+if [ "$create_ok" == "false" ]; then
+  echo "container create failed!"
+  echo "$create_response"
+  exit 1
+fi
+
+# update package information and link
+if [ "$EXECUTION_MODE" == "install" ]; then
+  echo $(jq --arg port "$GITLAB_HTTP_PORT" '.[][].port = $port' "$PKG_PATH/target/ui/config") > "$PKG_PATH/target/ui/config"
+elif [ "$EXECUTION_MODE" == "update" ]; then
+  GITLAB_HTTP_PORT=$(docker inspect "$GITLAB_CONTAINER_NAME" | jq -r '.[].HostConfig.PortBindings."80/tcp"[].HostPort')
+  GITLAB_HTTPS_PORT=$(docker inspect "$GITLAB_CONTAINER_NAME" | jq -r '.[].HostConfig.PortBindings."443/tcp"[].HostPort')
+
+  CURRENT_PROTOCOL=$(cat "$PKG_PATH/target/ui/config" | jq -r '.[][].protocol')
+  GITLAB_ACTIVE_PORT="$GITLAB_HTTP_PORT"
+  if [ "$CURRENT_PROTOCOL" == "https" ]; then
+    GITLAB_ACTIVE_PORT="$GITLAB_HTTPS_PORT"
+  fi
+  echo $(jq --arg port "$GITLAB_ACTIVE_PORT" '.[][].port = $port' "$PKG_PATH/target/ui/config") > "$PKG_PATH/target/ui/config"
+
+  GITLAB_IMAGE_VERSION_SHORT=$(echo "$GITLAB_VERSION_TARGET" | cut -f1 -d-)
+  sed -i -e "/^version=/s/=.*/=\"$GITLAB_IMAGE_VERSION_SHORT\"/" "/var/packages/$PKG_NAME/INFO"
+fi
+
+# restart package for all changes to take effect
+echo "restarting package"
+stop_response=$(synowebapi --exec api=SYNO.Core.Package.Control version=1 method=stop id="$PKG_NAME" 2> /dev/null)
+start_response=$(synowebapi --exec api=SYNO.Core.Package.Control version=1 method=start id="$PKG_NAME" 2> /dev/null)
+
+#sleep 3
+CONTAINER_ID=$(docker ps -q -f name=^"$GITLAB_CONTAINER_NAME"$)
+if [ -z "$CONTAINER_ID" ]; then
+  start_response=$(synowebapi --exec api=SYNO.Docker.Container version=1 method=start name="$GITLAB_CONTAINER_NAME" 2> /dev/null)
+  start_ok=$(echo "$start_response" | jq -r ".success")
+  if [ "$start_ok" == "false" ]; then
+    echo "container failed to start!"
+    echo "$start_response"
+    exit 1
+  else
+    echo "container started successfully..."
+  fi
+fi
+
+exit 0

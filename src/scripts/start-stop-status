@@ -1,0 +1,12 @@
+#!/bin/sh
+
+case "$1" in
+    start)
+    ;;
+    stop)
+    ;;
+    status)
+    ;;
+esac
+
+exit 0

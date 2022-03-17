@@ -1,0 +1,85 @@
+#!/usr/bin/env bash
+# include common
+. "$(dirname $0)"/common
+
+###########################################################
+# FUNCTIONS
+###########################################################
+help()
+{
+   # Display Help
+   echo "Syntax: gitlab-link-fix [options]"
+   echo "options:"
+   echo "  --protocol   - protocol http|https - default: $GITLAB_PROTOCOL_DEFAULT"
+   echo "  --port       - port - default: $GITLAB_PORT_DEFAULT"
+   echo
+   echo "Example: gitlab-link-fix --protocol=$GITLAB_PROTOCOL_DEFAULT --port=$GITLAB_PORT_DEFAULT"
+   exit 0
+}
+
+###########################################################
+# DEFAULT VARIABLES
+###########################################################
+# defaults
+GITLAB_PROTOCOL_DEFAULT="http"
+GITLAB_PORT_DEFAULT="30080"
+
+# interactive
+GITLAB_PROTOCOL=""
+GITLAB_PORT=""
+
+# system
+PACKAGE_CONFIG_FILE="$PKG_PATH/target/ui/config"
+
+###########################################################
+# PARAMETER HANDLING
+###########################################################
+PARAMS=""
+for i in "$@"
+do
+    case ${i} in
+      --protocol=*)
+          GITLAB_PROTOCOL="${i#*=}"
+      ;;
+      --port=*)
+          GITLAB_PORT="${i#*=}"
+      ;;
+      -h|--help)
+          help
+      ;;
+      *) # unknown option
+          PARAMS="$PARAMS \"$1\""
+      ;;
+    esac
+    shift
+done
+# set positional arguments in their proper place
+eval set -- "$PARAMS"
+
+if [ "$(expr "$GITLAB_PROTOCOL" : '^http|https$')" -gt 0 ]; then
+  echo "error protocol is invalid!"
+  help
+fi
+
+validate_port $GITLAB_PORT
+
+###########################################################
+# PROCESSING
+###########################################################
+if [ "$USER" != "root" ]; then
+  echo "You must run this script as ROOT!"
+  exit
+fi
+check_dependencies "synowebapi jq"
+
+# update port in link and restart package to take effect
+echo $(jq --arg port "$GITLAB_PORT" '.[][].port = $port' "$PACKAGE_CONFIG_FILE") > "$PACKAGE_CONFIG_FILE"
+echo $(jq '.[][].protocol = "https"' "$PACKAGE_CONFIG_FILE") > "$PACKAGE_CONFIG_FILE"
+
+# restart package for all changes to take effect
+echo "restarting package"
+stop_response=$(synowebapi --exec api=SYNO.Core.Package.Control version=1 method=stop id="$PKG_NAME" 2> /dev/null)
+start_response=$(synowebapi --exec api=SYNO.Core.Package.Control version=1 method=start id="$PKG_NAME" 2> /dev/null)
+
+echo "done!"
+exit 0

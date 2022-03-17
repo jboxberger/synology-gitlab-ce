@@ -1,0 +1,43 @@
+{
+  "docker": {
+    "services": [{
+        "service": "synology-gitlab-ce",
+        "image": "gitlab/gitlab-ce",
+        "container_name": "synology-gitlab-ce",
+        "tag": "13.4.4-ce.0",
+        "environment": [{
+            "env_var": "PATH",
+            "env_value": "/opt/gitlab/embedded/bin:/opt/gitlab/bin:/assets:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
+        }, {
+            "env_var": "LANG",
+            "env_value": "C.UTF-8"
+        }, {
+            "env_var": "TERM",
+            "env_value": "xterm"
+        }],
+        "shares": [{
+            "host_dir": "data",
+            "mount_point": "/var/opt/gitlab"
+        }, {
+            "host_dir": "logs",
+            "mount_point": "/var/log/gitlab"
+        }, {
+            "host_dir": "config",
+            "mount_point": "/etc/gitlab"
+        }],
+        "ports": [{
+            "host_port": "{{pkgwizard_ssh_port}}",
+            "container_port": "22",
+            "protocol": "tcp"
+        },{
+           "host_port": "{{pkgwizard_http_port}}",
+           "container_port": "80",
+           "protocol": "tcp"
+       },{
+            "host_port": "{{pkgwizard_https_port}}",
+            "container_port": "443",
+            "protocol": "tcp"
+        }]
+    }]
+  }
+}

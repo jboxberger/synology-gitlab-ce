@@ -1,0 +1,74 @@
+{
+  "cap_add" : null,
+  "cap_drop" : null,
+  "cmd" : "/assets/wrapper",
+  "cpu_priority" : 50,
+  "devices" : null,
+  "enable_publish_all_ports" : false,
+  "enable_restart_policy" : true,
+  "enabled" : true,
+  "env_variables" : [
+    {
+      "key" : "PATH",
+      "value" : "/opt/gitlab/embedded/bin:/opt/gitlab/bin:/assets:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
+    },
+    {
+      "key" : "LANG",
+      "value" : "C.UTF-8"
+    },
+    {
+      "key" : "TERM",
+      "value" : "xterm"
+    }
+  ],
+  "exporting" : false,
+  "image" : "__IMAGE__",
+  "is_ddsm" : false,
+  "is_package" : false,
+  "links" : [],
+  "memory_limit" : 0,
+  "name" : "synology-gitlab-ce",
+  "network" : [
+    {
+      "driver" : "bridge",
+      "name" : "bridge"
+    }
+  ],
+  "network_mode" : "bridge",
+  "port_bindings" : [
+    {
+      "container_port" : 22,
+      "host_port" : __PORT_SSH__,
+      "type" : "tcp"
+    },
+    {
+      "container_port" : 80,
+      "host_port" : __PORT_HTTP__,
+      "type" : "tcp"
+    },
+    {
+      "container_port" : 443,
+      "host_port" : __PORT_HTTPS__,
+      "type" : "tcp"
+    }
+  ],
+  "privileged" : false,
+  "use_host_network" : false,
+  "volume_bindings" : [
+    {
+      "host_volume_file" : "__SHARE_DATA__",
+      "mount_point" : "/var/opt/gitlab",
+      "type" : "rw"
+    },
+    {
+      "host_volume_file" : "__SHARE_LOGS__",
+      "mount_point" : "/var/log/gitlab",
+      "type" : "rw"
+    },
+    {
+      "host_volume_file" : "__SHARE_CONFIG__",
+      "mount_point" : "/etc/gitlab",
+      "type" : "rw"
+    }
+  ]
+}

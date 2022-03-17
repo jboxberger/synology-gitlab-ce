@@ -1,0 +1,126 @@
+#!/usr/bin/env bash
+. "$(dirname $0)"/common
+
+###########################################################
+# FUNCTIONS
+###########################################################
+help()
+{
+   # Display Help
+   echo "Syntax: gitlab-self-signed-cert <action> [<container>] [options]"
+   echo "arguments:"
+   echo "  action       - install"
+   echo "  container    - container name"
+   echo "options:"
+   echo "  --hostname   - gitlab hostname - default: $GITLAB_HOSTNAME_DEFAULT"
+   echo "  --https-port - https port - default: $GITLAB_HTTPS_PORT_DEFAULT"
+   echo
+   echo "Example: gitlab-cert install synology-gitlab-ce --hostname=$GITLAB_HOSTNAME_DEFAULT --https-port=$GITLAB_HTTPS_PORT_DEFAULT"
+   exit 0
+}
+
+###########################################################
+# DEFAULT VARIABLES
+###########################################################
+# defaults
+GITLAB_HOSTNAME_DEFAULT=$(hostname)
+GITLAB_HTTPS_PORT_DEFAULT="80443"
+GITLAB_INTERNAL_SSL_DIR="/etc/gitlab/ssl"
+GITLAB_INTERNAL_CONFIG="/etc/gitlab/gitlab.rb"
+
+# interactive
+GITLAB_HOSTNAME=""
+GITLAB_HTTPS_PORT=""
+
+###########################################################
+# PARAMETER HANDLING
+###########################################################
+PARAMS=""
+for i in "$@"
+do
+    case ${i} in
+      --hostname=*)
+          GITLAB_HOSTNAME="${i#*=}"
+      ;;
+      --port-https=*)
+          GITLAB_HTTPS_PORT="${i#*=}"
+      ;;
+      -h|--help)
+          help
+      ;;
+      *) # unknown option
+          PARAMS="$PARAMS \"$1\""
+      ;;
+    esac
+    shift
+done
+# set positional arguments in their proper place
+eval set -- "$PARAMS"
+
+EXECUTION_MODE="$1"
+if [ -z "$EXECUTION_MODE" ] || [ "$EXECUTION_MODE" != "install" ]; then
+  echo "error argument action not set!"
+  help
+fi
+
+###########################################################
+# PROCESSING
+###########################################################
+if [ "$USER" != "root" ]; then
+  echo "You must run this script as ROOT!"
+  exit
+fi
+check_dependencies "synowebapi jq docker"
+
+GITLAB_CONTAINER_NAME="$2"
+if [ -z "$GITLAB_CONTAINER_NAME" ] ; then
+  GITLAB_CONTAINER_NAME="$GITLAB_CONTAINER_NAME_DEFAULT"
+fi
+
+CONTAINER_ID=$(docker ps -q -f name=^"$GITLAB_CONTAINER_NAME"$)
+if [ -z "$CONTAINER_ID" ]; then
+    echo "container $GITLAB_CONTAINER_NAME does not exists, please make sure container is up and running"
+    exit  1
+fi
+
+if [ -z "$GITLAB_HOSTNAME" ]; then
+  read -ep "gitlab hostname? [default: $GITLAB_HOSTNAME_DEFAULT]: " GITLAB_HOSTNAME
+  if [ -z "$GITLAB_HOSTNAME" ]; then
+    GITLAB_HOSTNAME="$GITLAB_HOSTNAME_DEFAULT"
+  fi
+fi
+
+if [ -z "$GITLAB_HTTPS_PORT" ]; then
+  GITLAB_HTTPS_PORT=$(docker inspect synology-gitlab-ce | jq -r '.[].HostConfig.PortBindings."443/tcp"[].HostPort')
+  if [ -z "$GITLAB_HTTPS_PORT" ] || [ "$GITLAB_HTTPS_PORT" == "null" ]; then
+    read -ep "gitlab https port? [default: $GITLAB_HTTPS_PORT_DEFAULT]: " GITLAB_HTTPS_PORT
+    if [ -z "$GITLAB_HTTPS_PORT" ]; then
+      GITLAB_HTTPS_PORT="$GITLAB_HTTPS_PORT_DEFAULT"
+    fi
+  fi
+fi
+validate_port $GITLAB_HTTPS_PORT
+
+docker exec "$GITLAB_CONTAINER_NAME" bash -c "mkdir -p $GITLAB_INTERNAL_SSL_DIR"
+docker exec "$GITLAB_CONTAINER_NAME" bash -c "openssl req -x509 -nodes -days 3650 -newkey rsa:2048 -keyout \"$GITLAB_INTERNAL_SSL_DIR/$GITLAB_HOSTNAME.key\" -subj \"/C=DE/ST=Germany/L=Duisburg/O=jboxberger/OU=private/CN=$GITLAB_HOSTNAME\" -out \"$GITLAB_INTERNAL_SSL_DIR/$GITLAB_HOSTNAME.crt\""
+
+docker exec "$GITLAB_CONTAINER_NAME" bash -c "cp --backup=t $GITLAB_INTERNAL_CONFIG $GITLAB_INTERNAL_CONFIG.bak"
+docker exec "$GITLAB_CONTAINER_NAME" bash -c "sed -i \"s|^[#]*\s*external_url.*$|external_url 'https://$GITLAB_HOSTNAME'|\" $GITLAB_INTERNAL_CONFIG"
+docker exec "$GITLAB_CONTAINER_NAME" bash -c "sed -i \"s|^[#]*\s*letsencrypt\['enable'\]\s*=\s.*$|letsencrypt\['enable'\] = false|\" $GITLAB_INTERNAL_CONFIG"
+docker exec "$GITLAB_CONTAINER_NAME" bash -c "sed -i \"s|^[#]*\s*nginx\['ssl_certificate'\]\s*=\s.*$|nginx\['ssl_certificate'\] = \\\"$GITLAB_INTERNAL_SSL_DIR/$GITLAB_HOSTNAME.crt\\\"|\" $GITLAB_INTERNAL_CONFIG"
+docker exec "$GITLAB_CONTAINER_NAME" bash -c "sed -i \"s|^[#]*\s*nginx\['ssl_certificate_key'\]\s*=\s.*$|nginx\['ssl_certificate_key'\] = \\\"$GITLAB_INTERNAL_SSL_DIR/$GITLAB_HOSTNAME.key\\\"|\" $GITLAB_INTERNAL_CONFIG"
+
+docker exec "$GITLAB_CONTAINER_NAME" bash -c "gitlab-ctl reconfigure"
+docker exec "$GITLAB_CONTAINER_NAME" bash -c "gitlab-ctl restart"
+
+# update port in link and restart package to take effect
+echo $(jq --arg port "$GITLAB_HTTPS_PORT" '.[][].port = $port' "$PKG_PATH/target/ui/config") > "$PKG_PATH/target/ui/config"
+echo $(jq '.[][].protocol = "https"' "$PKG_PATH/target/ui/config") > "$PKG_PATH/target/ui/config"
+
+# restart package for all changes to take effect
+echo "restarting package"
+stop_response=$(synowebapi --exec api=SYNO.Core.Package.Control version=1 method=stop id="$PKG_NAME" 2> /dev/null)
+start_response=$(synowebapi --exec api=SYNO.Core.Package.Control version=1 method=start id="$PKG_NAME" 2> /dev/null)
+
+echo "done!"
+exit 0
