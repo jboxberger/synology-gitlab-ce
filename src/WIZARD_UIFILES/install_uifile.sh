@@ -126,7 +126,7 @@ PageAdvancedSettings()
 	"invalid_next_disabled_v2": true,
 	"items": [{
     "desc": "
-After install you need to <a href=\"https://kb.synology.com/DSM/tutorial/How_to_login_to_DSM_with_root_permission_via_SSH_Telnet\" target=\"_blank\">login on you synology over ssh</a> and execute this command with root privileges. Please modify the arguments to fit your needs.<br>
+After the installation is complete, you need to <a href=\"https://kb.synology.com/DSM/tutorial/How_to_login_to_DSM_with_root_permission_via_SSH_Telnet\" target=\"_blank\">login on your synology over ssh</a> and execute this command with root privileges. Please modify the arguments to fit your needs.<br>
 <br>
 You can copy this command with CTRL+C.<br>
 <br>
