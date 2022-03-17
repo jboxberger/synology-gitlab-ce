@@ -1,0 +1,95 @@
+#!/usr/bin/env bash
+
+###########################################################
+# CHECK DEPENDENCIES!
+###########################################################
+DEPENDENCIES_OK=1
+DEPENDENCIES_LIST="tar gzip basename"
+echo "$DEPENDENCIES_LIST" | tr ' ' '\n' | while read item; do
+  if [ -z $(which "$item" 2>/dev/null) ]; then
+    echo "$item is not installed."
+    DEPENDENCIES_OK=0
+  fi
+done
+
+if [ $DEPENDENCIES_OK -eq 0 ]; then
+  echo "dependencies not met, exiting."
+  exit 1
+fi
+
+###########################################################
+# FUNCTIONS
+###########################################################
+help()
+{
+   # Display Help
+   echo "Syntax: fix_synology_gitlab_backup <file>"
+   echo "arguments:"
+   echo "  file    - path to your gitlab_backup.tar file"
+   echo
+   echo "Example: fix_synology_gitlab_backup 1647548012_2022_03_17_13.9.3_gitlab_backup.tar"
+   exit 0
+}
+
+###########################################################
+# PARAMETER HANDLING
+###########################################################
+PARAMS=""
+for i in "$@"
+do
+    case ${i} in
+      -h|--help)
+          help
+      ;;
+      *) # unknown option
+          PARAMS="$PARAMS \"$1\""
+      ;;
+    esac
+    shift
+done
+# set positional arguments in their proper place
+eval set -- "$PARAMS"
+
+###########################################################
+# PROCESSING
+###########################################################
+# file exists
+if [ ! -f "$1" ]; then
+  echo "file $1 does not exists!"
+  exit 1
+fi
+
+###########################################################
+# VARIABLES
+###########################################################
+DIRECTORY_TMP="./tmp"
+GITLAB_BACKUP_FILE_PATH="$1"
+GITLAB_BACKUP_FILE_NAME=$(basename "$GITLAB_BACKUP_FILE_PATH")
+GITLAB_BACKUP_FILE_NAME_NO_EXT="${GITLAB_BACKUP_FILE_NAME%.*}"
+
+#---------------------- MOVE & CREATE TMP -----------------
+# create tmp folder and copy file there
+mkdir -p "$DIRECTORY_TMP/$GITLAB_BACKUP_FILE_NAME_NO_EXT" && cd "$DIRECTORY_TMP/$GITLAB_BACKUP_FILE_NAME_NO_EXT"
+cp -f "$GITLAB_BACKUP_FILE_PATH" .
+
+#---------------------- EXTRACT----------------------------
+# extract file
+tar -xf "$GITLAB_BACKUP_FILE_NAME" && rm -f "$GITLAB_BACKUP_FILE_NAME"
+# extract db file
+cd db && gzip -d database.sql.gz
+
+#---------------------- PROCESS ---------------------------
+# replace gitlab_user with gitlab
+sed -i -e "s|gitlab_user|gitlab|g" "database.sql"
+
+#---------------------- COMPRESS --------------------------
+gzip database.sql && cd ..
+tar -cf "$GITLAB_BACKUP_FILE_NAME" . 2> /dev/null
+
+#---------------------- MOVE & CLEANUP --------------------
+mv "$GITLAB_BACKUP_FILE_NAME" "$GITLAB_BACKUP_FILE_PATH.new"
+cd .. && rm -rf "$DIRECTORY_TMP/$GITLAB_BACKUP_FILE_NAME_NO_EXT"
+cd .. && rm -rf "$DIRECTORY_TMP"
+
+echo "fix complete: $GITLAB_BACKUP_FILE_PATH.new"
+exit 0

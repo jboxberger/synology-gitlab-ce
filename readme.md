@@ -194,3 +194,35 @@ sudo docker restart "<gitlab-container-name>"
 # check GitLab
 sudo docker exec -it "<gitlab-container-name>" gitlab-rake gitlab:check SANITIZE=true
 ```
+
+### Migration from [synology-gitlab](https://github.com/jboxberger/synology-gitlab) package
+Migration can only be done within the same GitLab version. Its is basically a backup from synology-gitlab package and restore to
+the synology-gitlab-ce package.
+```bash
+# backup config 
+# @todo: not found a way yet, here is the config located but its structure differs from the omnibus package, need review and testing
+# for now, you can look up needed configuration and transfer it manually to your new synology-gitlab-ce instance
+sudo docker exec -w "/home/git/gitlab/config" -it synology_gitlab bash
+
+# backup data
+sudo docker exec -it synology_gitlab bash -c "sudo -u git -H bundle exec rake gitlab:backup:create RAILS_ENV=production CRON=1"
+
+# The synology-gitlab psql user differs from the synology-gitlab-ce so we need to modify the database dump. Simply replace
+# the "gitlab_user" with "gitlab". The tools/fix_synology_gitlab_backup does that for you. 
+# Syntax: fix_synology_gitlab_backup <file>
+# arguments:
+#   file    - path to your gitlab_backup.tar file
+
+./tools/fix_synology_gitlab_backup 1647548012_2022_03_17_13.9.3_gitlab_backup.tar
+
+# you will get a 1647548012_2022_03_17_13.9.3_gitlab_backup.tar.new file as output which is ready for restore.
+# now you can process with the regular restore procedure above, please do not forget to remove the ".new" suffix from file.
+
+# NOTE: if you get following errors, they seems to be common. Despite the errors the restore seems to work, further 
+# investigation needed. See https://gitlab.com/gitlab-org/gitlab/-/issues/266988
+#
+# Restoring PostgreSQL database gitlabhq_production ... ERROR:  must be owner of extension pg_trgm
+# ERROR:  must be owner of extension btree_gist
+# ERROR:  must be owner of extension btree_gist
+# ERROR:  must be owner of extension pg_trgm
+```
