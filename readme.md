@@ -52,9 +52,9 @@ different container/versions and different data shares. You can test your upgrad
 | requires root privileges                                  | &check;  | &cross; |
 | gitlab can be upgraded                                    | &check;  | &check; |
 | gitlab can be downgraded                                  | &check;  | &cross; |
-| multiple parallel installations                           | &check;  | &cross; |
-| start/stop over docker app                                | &check;  | &cross; |
+| multiple parallel gitlab instances                        | &check;  | &cross; |
 | start/stop over package control                           | &cross;  | &check; |
+| start/stop over docker app                                | &check;  | &cross; |
 | exposed gitlab configuration and data                     | &check;  | &check; |
 | container settings accessible                             | &check;  | &cross; |
 | access to container environment variables                 | &check;  | &cross; |
@@ -103,13 +103,13 @@ sudo sh gitlab update synology-gitlab-ce --version=13.4.5-ce.0
 ```
 
 ### Connect into container
-If you want to bash into your gitlab container you can do this with thi command
+If you want to bash into your gitlab container you can do this with this command
 ```bash
 sudo docker exec -it "<gitlab-container-name>" bash 
 ```
 
 ### GitLab Configuration
-For Configuration of the omnibus based GitLab image please refer to this documentation [https://docs.gitlab.com/omnibus/settings](https://docs.gitlab.com/omnibus/settings).
+For configuration of the omnibus based GitLab image please refer to this documentation [https://docs.gitlab.com/omnibus/settings](https://docs.gitlab.com/omnibus/settings).
 ```bash
 # after any change to the gitlab configuration you need to reconfigure 
 # gitlab and restart the services, which can be done with this two 
@@ -120,9 +120,10 @@ sudo docker exec -t "<gitlab-container-name>" bash -c "gitlab-ctl restart"
 ```
 
 ### SSL (self-signed) helper
-This helper installs for you a self-signed SSL certificate nt your gitlab container and configures your gitlab to use this.
-If possible the GitLab shortcut in the DMS menu will be changed to https and your container https-port. If the icon is not
-working you can fix it wit the helper below.
+This helper installs for you a self-signed SSL certificate to your gitlab container and configures your gitlab to use this. 
+Please do not use this for public accessible instances, this approach only makes sense if you run your GitLab private on 
+your LAN and you're lazy to do a proper SSL certificate and install it. In any other case i recommend you to use 
+the [GitLab Let's Encrypt](https://docs.gitlab.com/omnibus/settings/ssl.html#lets-encrypt-integration) integration.
 ```bash
 # Location: /var/packages/synology-gitlab-ce/scripts
 # Syntax: gitlab-self-signed-cert <action> [<container>] [options]
@@ -153,7 +154,8 @@ sudo sh gitlab-link-fix --protocol=https --port=30443
 
 ### Backup
 Please refer to this documentation [here](https://docs.gitlab.com/omnibus/settings/backups.html).
-It is not recommended to store data backups in the same location as your config/credentials backup. Because of this, the backup process is split into two steps, the config backup and teh data backup.
+It is not recommended to store data backups in the same location as your config/credentials backup. Because of this, the 
+backup process is split into two steps, the config backup and the data backup.
 ```bash
 # backup gitlab configuration
 # you will find you backups in this folder 
@@ -179,15 +181,16 @@ Please refer to the GitLab documentation [here](https://docs.gitlab.com/ee/raket
 # /docker/<gitlab-container-share>/data/backups
 sudo docker exec -it "<gitlab-container-name>" gitlab-ctl stop puma   
 sudo docker exec -it "<gitlab-container-name>" gitlab-ctl stop sidekiq
-# Verify puma & sidekiq are down
+# verify puma & sidekiq are down
 sudo docker exec -it "<gitlab-container-name>" gitlab-ctl status    
-# fix permissions &&  restore
+# fix permissions
 sudo docker exec -it "<gitlab-container-name>" chown git:git /var/opt/gitlab/backups/1647529095_2022_03_17_13.4.3_gitlab_backup.tar
+# restore, please omit the "_gitlab_backup.tar" from the backup archive name
 sudo docker exec -it "<gitlab-container-name>" gitlab-backup restore BACKUP=1647529095_2022_03_17_13.4.3
 
-# Restart the GitLab container
+# restart the GitLab container
 sudo docker restart "<gitlab-container-name>"
 
-# Check GitLab
+# check GitLab
 sudo docker exec -it "<gitlab-container-name>" gitlab-rake gitlab:check SANITIZE=true
 ```
