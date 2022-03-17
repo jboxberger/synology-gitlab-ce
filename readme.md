@@ -5,7 +5,7 @@ The goal of this project is to lower the entry barrier for new GitLab users and 
 
 Everything this package does, can be also done manually over the Synology Docker NAS Application.    
 
-Please note that i can not give you support for GitLab itself, this project covers only the Synology installation/update routines.
+Please note that I can not give you support for GitLab itself, this project covers only the Synology installation/update routines.
 If you need GitLab Support you might get it here [https://forum.gitlab.com](https://forum.gitlab.com). 
 
 ### Hardware Requirements:
