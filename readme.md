@@ -77,7 +77,7 @@ Clone this repository and execute the build script
 ### Advanced Installer/Updater
 ```bash
 # Location: /var/packages/synology-gitlab-ce/scripts
-# Syntax: gitlab <action> [<container>] [options]
+# Syntax: gitlab <action> <container> [options]
 # arguments:
 #   action       - install or update
 #   container    - container name
