@@ -109,6 +109,14 @@ If you want to bash into your gitlab container you can do this with this command
 sudo docker exec -it "<gitlab-container-name>" bash 
 ```
 
+### Reset Password 
+If you forgot your password or after the install GitLab does not redirect you to the 
+password reset form. You can reset your password from the command line. On a fresh 
+install the main user is 'root'. See also the [documentation](https://docs.gitlab.com/ee/security/reset_user_password.html).
+```bash
+sudo docker exec -it "<gitlab-container-name>" bash -c "gitlab-rake 'gitlab:password:reset'" 
+```
+
 ### GitLab Configuration
 For configuration of the omnibus based GitLab image please refer to this documentation [https://docs.gitlab.com/omnibus/settings](https://docs.gitlab.com/omnibus/settings).
 ```bash
