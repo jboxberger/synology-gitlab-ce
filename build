@@ -137,6 +137,8 @@ echo -n "building '$GITLAB_IMAGE_VERSION' as '$PACKAGE_TYPE' for DSM$DSM_VERSION
 ########################################################################################################################
 # PACKAGE BUILD
 ########################################################################################################################
+START_TIME=$(date +%s.%3N)
+
 [ ! -d "$DIRECTORY_SPK" ] && mkdir -p "$DIRECTORY_SPK"
 [ -d "$DIRECTORY_TMP" ] && rm -rf "$DIRECTORY_TMP"
 
