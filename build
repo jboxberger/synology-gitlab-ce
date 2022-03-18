@@ -160,4 +160,4 @@ OUTPUT_FILE_NAME="synology-gitlab-ce-$GITLAB_IMAGE_VERSION_SHORT-dsm$GITLAB_DSM_
 cd "$DIRECTORY_TMP/" && tar --format=gnu -cf "../$DIRECTORY_SPK/$OUTPUT_FILE_NAME" * && cd ../
 
 rm -rf "$DIRECTORY_TMP"
-echo "build complete: 'spk/$OUTPUT_FILE_NAME'"
+echo "build complete: $DIRECTORY_SPK/$OUTPUT_FILE_NAME"
