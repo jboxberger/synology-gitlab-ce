@@ -8,12 +8,12 @@ Everything this package does, can be also done manually over the Synology Docker
 Please note that I can not give you support for GitLab itself, this project covers only the Synology installation/update routines.
 If you need GitLab Support you might get it here [https://forum.gitlab.com](https://forum.gitlab.com). 
 
+### Download SPK:
+You can download the SPK file in the [Releases](https://github.com/jboxberger/synology-gitlab-ce/releases) section.
+
 ### Hardware Requirements:
 - 1 CPU core ( 2 cores is recommended )
 - 2 GB RAM ( 4GB RAM is recommended )
-
-### Download SPK:
-You can download the SPK file in the [Releases](https://github.com/jboxberger/synology-gitlab-ce/releases) section.
 
 ### Classic:
 very simplistic package, installation and basic configuration over DSM, no ssh or root privileges 
