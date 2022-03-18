@@ -62,8 +62,9 @@ different container/versions and different data shares. You can test your upgrad
 | GitLab files (data, config) remains on package uninstall    | &check;  | &cross; |
 
 ### Build instructions
-Clone this repository and execute the build script. This can be done on any linux and should
-also work on WSL. Except "jq" there are no special packages/binaries required.
+Clone this repository and execute the build.sh shell script within your terminal 
+application. This can be done on any linux and should also work on WSL. 
+Except "jq" there are no special packages/binaries required.
 ```bash
 # Syntax: build [options]
 # options:
