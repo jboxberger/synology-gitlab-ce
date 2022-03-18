@@ -80,14 +80,15 @@ show_select_menu_with_default() {
 help()
 {
    # Display Help
-   echo "Syntax: build <version> [options]"
-   echo "arguments:"
-   echo "  version - GitLab CE version e.g. 13.4.3-ce.0"
+   echo "Syntax: build [options]"
    echo "options:"
-   echo "  --type  - package type (classic|advanced) - default: classic"
-   echo "  --dsm   - target DSM version (6|7) - default: 7"
+   echo "  --version - GitLab CE version e.g. 13.4.3-ce.0, "
+   echo "              when no version given, a selection list of the latest"
+   echo "              available versions is shown"
+   echo "  --type    - package type (classic|advanced) - default: classic"
+   echo "  --dsm     - target DSM version (6|7) - default: 7"
    echo
-   echo "Example: build 13.4.3-ce.0 --dsm=7 --type=classic"
+   echo "Example: build --version=13.4.3-ce.0 --dsm=7 --type=classic"
    exit 0
 }
 
