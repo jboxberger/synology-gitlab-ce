@@ -20,33 +20,61 @@ fi
 ###########################################################
 # FUNCTIONS
 ###########################################################
-get_latest_version_number_from_dockerhub() {
+dockerhub_get_available_image_version_list() {
   local image_name="$1"
-
-  version="$(curl https://hub.docker.com/v2/repositories/"$image_name"/tags 2>/dev/null | jq -r '.results[].name' | tr "\n" ' ')"
-
-  latest=$(echo "$version" | tr ' ' '\n' | while read item; do
-    if [ -n "$item" ] && [ "$(expr "$item" : '^[0-9\.]*-ce\.[0-9]$')" -gt 0 ] ; then
-      echo "$item"
-      break;
-    fi
-  done)
-
-  if [ -z "$latest" ]; then
-    latest="-1"
-  fi
-  echo "$latest"
+  local page_size=20
+  local version_list=$(curl https://hub.docker.com/v2/repositories/"$image_name"/tags?page_size=$page_size 2>/dev/null | jq -r '.results[].name' | grep "\-ce")
+  local version_list_sorted=""
+  readarray -td '' version_list_sorted < <(printf '%s\n' "${version_list[@]}" | sort -ru)
+  echo ${version_list_sorted[@]}
 }
 
-show_available_version_numbers_from_dockerhub() {
-  local image_name="$1"
+# Custom `select` implementation that allows *empty* input.
+# Pass the choices as individual arguments.
+# Output is the chosen item, or "", if the user just pressed ENTER.
+# Example:
+#    choice=$(show_select_menu_with_default 'one' 'two' 'three')
+show_select_menu_with_default() {
 
-  versions="$(curl https://hub.docker.com/v2/repositories/"$image_name"/tags 2>/dev/null | jq -r '.results[].name' | grep "\-ce")"
-  
-  echo "Available versions:"
-  while IFS= read -r line; do
-      echo "  - $line"
-  done <<< "$versions"
+  local item i=0 numItems=$#
+  local default_value=""
+
+  # Print numbered menu items, based on the arguments passed.
+  for item; do         # Short for: for item in "$@"; do
+    printf '%s\n' "$((++i))) $item"
+
+    # fist item is default
+    if [ -z "$default_value" ]; then
+      default_value="$item"
+    fi
+  done >&2 # Print to stderr, as `select` does.
+
+  PS3="please select version [default $default_value]: "
+
+  # Prompt the user for the index of the desired item.
+  while :; do
+    printf %s "${PS3-#? }" >&2 # Print the prompt string to stderr, as `select` does.
+    read -r index
+
+    # Make sure that the input is either empty or that a valid index was entered.
+    if [ -z $index ]; then # empty input
+      break
+    fi
+
+    if [ $(expr $index : '^[0-9]\{1,2\}$') -eq 0 ] || [ $index -lt 1 ] || [ $index -gt $numItems ]; then
+      echo "Invalid selection. Please Select a number 1-$numItems or Enter for default." >&2
+      continue
+    fi
+    break
+  done
+
+  # Output the selected item, if any.
+  if [ ! -z $index ]; then
+    printf %s "${@: index:1}"
+  else
+    printf %s "$default_value"
+  fi
+
 }
 
 help()
@@ -69,11 +97,10 @@ help()
 PACKAGE_TYPE="classic"
 DSM_VERSION="7"
 GITLAB_IMAGE_NAME="gitlab/gitlab-ce"
-GITLAB_IMAGE_VERSION="13.4.3-ce.0"
+GITLAB_IMAGE_VERSION=""
 
 DIRECTORY_SPK="./spk"
 DIRECTORY_TMP="./tmp"
-START_TIME=$(date +%s.%3N)
 ###########################################################
 # PARAMETER HANDLING
 ###########################################################
@@ -81,6 +108,9 @@ PARAMS=""
 for i in "$@"
 do
     case ${i} in
+      --version=*)
+          GITLAB_IMAGE_VERSION="${i#*=}"
+      ;;
       --type=*)
           PACKAGE_TYPE="${i#*=}"
       ;;
@@ -111,14 +141,10 @@ if [ "$DSM_VERSION" != "6" ] && [ "$DSM_VERSION" != "7" ]; then
 fi
 
 # validate version
-if [ -z "$1" ]; then
-  GITLAB_VERSION_LATEST="$(get_latest_version_number_from_dockerhub "$GITLAB_IMAGE_NAME")"
-  read -ep "gitlab version [default (latest): $GITLAB_VERSION_LATEST]: " GITLAB_IMAGE_VERSION
-  if [ -z "$GITLAB_IMAGE_VERSION" ]; then
-    GITLAB_IMAGE_VERSION="$GITLAB_VERSION_LATEST"
-  fi
-else
-  GITLAB_IMAGE_VERSION="$1"
+if [ -z "$GITLAB_IMAGE_VERSION" ]; then
+  # Print the prompt message and call the custom select function.
+  GITLAB_VERSION_LIST=($(dockerhub_get_available_image_version_list "$GITLAB_IMAGE_NAME"))
+  GITLAB_IMAGE_VERSION=$(show_select_menu_with_default "${GITLAB_VERSION_LIST[@]:0:9}") # take only first 9 items
 fi
 
 if [ "$(expr "$GITLAB_IMAGE_VERSION" : '^[0-9\.]*-ce\.[0-9]$')" -eq 0 ]; then
