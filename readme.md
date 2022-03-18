@@ -48,7 +48,7 @@ different container/versions and different data shares. You can test your upgrad
 | Feature                                                     | Advanced | Classic |
 |-------------------------------------------------------------|:--------:|:-------:|
 | DSM only install                                            | &cross;  | &check; |
-| requires ssh for install [^1]                               | &check;  | &cross; |
+| requires ssh for install                                    | &check;  | &cross; |
 | requires root privileges                                    | &check;  | &cross; |
 | gitlab can be upgraded                                      | &check;  | &check; |
 | gitlab can be downgraded                                    | &check;  | &cross; |
@@ -61,10 +61,9 @@ different container/versions and different data shares. You can test your upgrad
 | keeps container settings (ports, volumes, links) on updates | &check;  | &cross; |
 | GitLab files (data, config) remains on package uninstall    | &check;  | &cross; |
 
-[^1]: SSH is how ever needed for both package types to be build
-
 ### Build instructions
-Clone this repository and execute the build script
+Clone this repository and execute the build script. This can be done on any linux and should
+also work on WSL. Except "jq" there are no special packages/binaries required.
 ```bash
 # Syntax: build <version> [options]
 # arguments:
