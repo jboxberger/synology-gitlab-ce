@@ -73,7 +73,7 @@ GITLAB_IMAGE_VERSION="13.4.3-ce.0"
 
 DIRECTORY_SPK="./spk"
 DIRECTORY_TMP="./tmp"
-
+START_TIME=$(date +%s.%3N)
 ###########################################################
 # PARAMETER HANDLING
 ###########################################################
@@ -132,7 +132,7 @@ if [ "$DSM_VERSION" == "6" ] && [ "$PACKAGE_TYPE" == "classic" ]; then
   exit 1
 fi
 
-echo "Building '$GITLAB_IMAGE_VERSION' as '$PACKAGE_TYPE' for DSM$DSM_VERSION..."
+echo -n "building '$GITLAB_IMAGE_VERSION' as '$PACKAGE_TYPE' for DSM$DSM_VERSION... "
 
 ########################################################################################################################
 # PACKAGE BUILD
@@ -175,4 +175,7 @@ OUTPUT_FILE_NAME="synology-gitlab-ce-$GITLAB_IMAGE_VERSION_SHORT-dsm$DSM_VERSION
 cd "$DIRECTORY_TMP/" && tar --format=gnu -cf "../$DIRECTORY_SPK/$OUTPUT_FILE_NAME" * && cd ../
 
 rm -rf "$DIRECTORY_TMP"
-echo "build complete: $DIRECTORY_SPK/$OUTPUT_FILE_NAME"
+
+RUN_TIME=$( echo "scale=3; $(date +%s.%3N) - $START_TIME" | bc )
+echo "complete in "$RUN_TIME"s"
+echo "file: $DIRECTORY_SPK/$OUTPUT_FILE_NAME"
