@@ -224,10 +224,14 @@ sudo docker exec -it synology_gitlab bash -c "sudo -u git -H bundle exec rake gi
 
 # NOTE: if you get following errors, they seems to be common. Despite the errors the 
 # restore seems to work, further investigation needed. 
-# See https://gitlab.com/gitlab-org/gitlab/-/issues/266988
+# See: https://gitlab.com/gitlab-org/gitlab/-/issues/266988
 #
 # Restoring PostgreSQL database gitlabhq_production ... ERROR:  must be owner of extension pg_trgm
 # ERROR:  must be owner of extension btree_gist
 # ERROR:  must be owner of extension btree_gist
 # ERROR:  must be owner of extension pg_trgm
+#
+# See: https://gitlab.com/gitlab-org/gitlab/-/issues/266988#note_430408658
+# Regarding to this post is everything fine as far as the restore doesn't break.
+# Quote: "We ignore 'does not exist' and 'must be owner' of errors"
 ```
