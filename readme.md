@@ -65,14 +65,15 @@ different container/versions and different data shares. You can test your upgrad
 Clone this repository and execute the build script. This can be done on any linux and should
 also work on WSL. Except "jq" there are no special packages/binaries required.
 ```bash
-# Syntax: build.sh <version> [options]
-# arguments:
-#   version - GitLab CE version e.g. 13.4.3-ce.0
+# Syntax: build [options]
 # options:
-#   --type  - package type (classic|advanced) - default: classic
-#   --dsm   - target DSM version (6|7) - default: 7
+#   --version - GitLab CE version e.g. 13.4.3-ce.0, 
+#               when no version given, a selection list of the latest
+#               available versions is shown
+#   --type    - package type (classic|advanced) - default: classic
+#   --dsm     - target DSM version (6|7) - default: 7
 
-./build.sh 13.4.3-ce.0 --dsm=7 --type=classic
+./build.sh  --version=13.4.3-ce.0 --dsm=7 --type=classic
 ```
 
 ### Advanced Installer/Updater
