@@ -127,7 +127,7 @@ if [ "$(expr "$GITLAB_IMAGE_VERSION" : '^[0-9\.]*-ce\.[0-9]$')" -eq 0 ]; then
 fi
 
 # Classic not supported on DSM6
-if [ "$DSM_VERSION" == "6" ] && [ "$PACKAGE_TYPE" == "classic" ]; then
+if [ "$DSM_VERSION" = "6" ] && [ "$PACKAGE_TYPE" = "classic" ]; then
   echo "package type '$PACKAGE_TYPE' is not supported for DSM$DSM_VERSION"
   exit 1
 fi
@@ -141,9 +141,9 @@ echo -n "building '$GITLAB_IMAGE_VERSION' as '$PACKAGE_TYPE' for DSM$DSM_VERSION
 [ -d "$DIRECTORY_TMP" ] && rm -rf "$DIRECTORY_TMP"
 
 cp -r ./src "$DIRECTORY_TMP"
-if [ "$PACKAGE_TYPE" == "advanced" ]; then
+if [ "$PACKAGE_TYPE" = "advanced" ]; then
   rm -f "$DIRECTORY_TMP/conf/resource"
-elif [ "$PACKAGE_TYPE" == "classic" ]; then
+elif [ "$PACKAGE_TYPE" = "classic" ]; then
   rm -f "$DIRECTORY_TMP/scripts/gitlab"
   rm -rf "$DIRECTORY_TMP/scripts/templates"
   echo $(jq --arg version "$GITLAB_IMAGE_VERSION" '.docker.services[0].tag = $version' "$DIRECTORY_TMP/conf/resource") > "$DIRECTORY_TMP/conf/resource"
@@ -156,8 +156,6 @@ do
   sed -i -e "/^GITLAB_IMAGE_VERSION=/s/=.*/=\"$GITLAB_IMAGE_VERSION\"/" "$f"
 done
 
-
-
 # COMPRESS PACKAGE DIR
 cd "$DIRECTORY_TMP/package/" && tar -zcf "../package.tgz" * && cd ../../ && rm -rf "$DIRECTORY_TMP/package/"
 EXTRACTSIZE=$(du -k --block-size=1KB "$DIRECTORY_TMP/package.tgz" | cut -f1)
@@ -168,7 +166,6 @@ sed -i -e "/^version=/s/=.*/=\"$GITLAB_IMAGE_VERSION_SHORT\"/" "$DIRECTORY_TMP/I
 sed -i -e "/^os_min_ver=/s/=.*/=\"$DSM_VERSION.0-00000\"/" "$DIRECTORY_TMP/INFO"
 sed -i -e "/^description=/s/=.*/=\"GitLab CE docker container ($PACKAGE_TYPE)\"/" "$DIRECTORY_TMP/INFO"
 sed -i -e "/^extractsize=/s/=.*/=\"$EXTRACTSIZE\"/" "$DIRECTORY_TMP/INFO"
-
 
 # CREATE FILE
 OUTPUT_FILE_NAME="synology-gitlab-ce-$GITLAB_IMAGE_VERSION_SHORT-dsm$DSM_VERSION-$PACKAGE_TYPE.spk"
