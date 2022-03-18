@@ -1,6 +1,6 @@
 #!/bin/bash
-GITLAB_PACKAGE_TYPE=""
-GITLAB_PACKAGE_VERSION=""
+PACKAGE_TYPE=""
+GITLAB_IMAGE_VERSION=""
 
 memory_lt()
 {
@@ -133,7 +133,7 @@ You can copy this command with CTRL+C.<br>
 <pre style=\"user-select: text; cursor: initial;\">
 cd /var/packages/synology-gitlab-ce/scripts && &bsol;
 sudo sh gitlab install synology-gitlab-ce &bsol;
---version=$GITLAB_PACKAGE_VERSION &bsol;
+--version=$GITLAB_IMAGE_VERSION &bsol;
 --share=synology-gitlab-ce &bsol;
 --port-ssh=30022 &bsol;
 --port-http=30080 &bsol;
@@ -202,7 +202,7 @@ main()
 	install_page=$(page_append "$install_page" "$memory_check_page")
 
 
-	if [ "$GITLAB_PACKAGE_TYPE" == "advanced" ]; then
+	if [ "$PACKAGE_TYPE" == "advanced" ]; then
     install_summary_page="$(PageAdvancedSettings)"
     install_page=$(page_append "$install_page" "$install_summary_page")
   else
