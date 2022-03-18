@@ -66,7 +66,7 @@ Clone this repository and execute the build.sh shell script within your terminal
 application. This can be done on any linux and should also work on WSL. 
 Except "jq" there are no special packages/binaries required.
 ```bash
-# Syntax: build [options]
+# Syntax: build.sh [options]
 # options:
 #   --version - GitLab CE version e.g. 13.4.3-ce.0, 
 #               when no version given, a selection list of the latest
@@ -74,7 +74,7 @@ Except "jq" there are no special packages/binaries required.
 #   --type    - package type (classic|advanced) - default: classic
 #   --dsm     - target DSM version (6|7) - default: 7
 
-./build.sh  --version=13.4.3-ce.0 --dsm=7 --type=classic
+./build.sh --version=13.4.3-ce.0 --dsm=7 --type=classic
 ```
 
 ### Advanced Installer/Updater
