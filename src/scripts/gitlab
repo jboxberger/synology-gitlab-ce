@@ -1,4 +1,4 @@
-#!/usr/bin/env bash
+#!/bin/sh
 . "$(dirname $0)"/common
 
 ###########################################################
@@ -111,10 +111,10 @@ if [ ! -z "$GITLAB_CONTAINER_CONFIG_CONTENT" ] && [ "$GITLAB_CONTAINER_CONFIG_CO
   GITLAB_VERSION_CURRENT=$(echo "$GITLAB_CONTAINER_CONFIG_CONTENT" | jq -r ".image")
 fi
 
-if [ "$EXECUTION_MODE" == "install" ] && [ "$GITLAB_VERSION_CURRENT" != "none" ]; then
+if [ "$EXECUTION_MODE" = "install" ] && [ "$GITLAB_VERSION_CURRENT" != "none" ]; then
   echo "can not install, container $GITLAB_CONTAINER_NAME already exists"
   exit  1
-elif [ "$EXECUTION_MODE" == "update" ] && [ "$GITLAB_VERSION_CURRENT" == "none" ]; then
+elif [ "$EXECUTION_MODE" = "update" ] && [ "$GITLAB_VERSION_CURRENT" = "none" ]; then
   echo "can not update, container $GITLAB_CONTAINER_NAME not installed"
   exit  1
 fi
@@ -126,7 +126,7 @@ if [ -z "$GITLAB_VERSION_TARGET" ]; then
   fi
 fi
 
-if [ "$EXECUTION_MODE" == "install" ]; then
+if [ "$EXECUTION_MODE" = "install" ]; then
   if [ -z "$GITLAB_SHARE_NAME" ]; then
     read -ep "directory name for gitlab? [default: $GITLAB_CONTAINER_NAME]: " GITLAB_SHARE_NAME
     if [ -z "$GITLAB_SHARE_NAME" ]; then
@@ -134,25 +134,25 @@ if [ "$EXECUTION_MODE" == "install" ]; then
     fi
   fi
 
-  if [ "$GITLAB_SSH_PORT" == "0" ]; then
+  if [ "$GITLAB_SSH_PORT" = "0" ]; then
       read -ep "ssh port mapping 22:<host_port>? [default: $GITLAB_SSH_PORT_DEFAULT]: " GITLAB_SSH_PORT
-      if [ -z "$GITLAB_SSH_PORT" ] || [ "$GITLAB_SSH_PORT" == "22" ] ; then
+      if [ -z "$GITLAB_SSH_PORT" ] || [ "$GITLAB_SSH_PORT" = "22" ] ; then
         GITLAB_SSH_PORT=$GITLAB_SSH_PORT_DEFAULT
       fi
   fi
   validate_port "$GITLAB_SSH_PORT" 1
 
-  if [ "$GITLAB_HTTP_PORT" == "0" ]; then
+  if [ "$GITLAB_HTTP_PORT" = "0" ]; then
     read -ep "http port mapping 80:<host_port>? [default: $GITLAB_HTTP_PORT_DEFAULT]: " GITLAB_HTTP_PORT
-    if [ -z "$GITLAB_HTTP_PORT" ] || [ "$GITLAB_HTTP_PORT" == "80" ] ; then
+    if [ -z "$GITLAB_HTTP_PORT" ] || [ "$GITLAB_HTTP_PORT" = "80" ] ; then
       GITLAB_HTTP_PORT=$GITLAB_HTTP_PORT_DEFAULT
     fi
   fi
   validate_port "$GITLAB_HTTP_PORT" 1
 
-  if [ "$GITLAB_HTTPS_PORT" == "0" ]; then
+  if [ "$GITLAB_HTTPS_PORT" = "0" ]; then
     read -ep "https port mapping 443:<host_port>? [default: $GITLAB_HTTPS_PORT_DEFAULT]: " GITLAB_HTTPS_PORT
-    if [ -z "$GITLAB_HTTPS_PORT" ] || [ "$GITLAB_HTTPS_PORT" == "443" ] ; then
+    if [ -z "$GITLAB_HTTPS_PORT" ] || [ "$GITLAB_HTTPS_PORT" = "443" ] ; then
       GITLAB_HTTPS_PORT=$GITLAB_HTTPS_PORT_DEFAULT
     fi
   fi
@@ -164,7 +164,7 @@ echo "action          : $EXECUTION_MODE"
 echo "container       : $GITLAB_CONTAINER_NAME"
 echo "image           : $GITLAB_IMAGE_NAME"
 
-if [ "$EXECUTION_MODE" == "update" ]; then
+if [ "$EXECUTION_MODE" = "update" ]; then
 echo "version current : $(echo "$GITLAB_VERSION_CURRENT" | cut -f2 -d:)"
 echo "version new     : $GITLAB_VERSION_TARGET"
 else
@@ -184,7 +184,7 @@ fi
 ###########################################################
 # PROCESSING
 ###########################################################
-if [ "$EXECUTION_MODE" == "install" ]; then
+if [ "$EXECUTION_MODE" = "install" ]; then
   if [ ! -f "$GITLAB_CONTAINER_CONFIG_TEMPLATE" ]; then
      echo "template: $GITLAB_CONTAINER_CONFIG_TEMPLATE is missing, aborting!"
      exit 1
@@ -223,10 +223,10 @@ if [ $pull_success -ne 1 ]; then
   exit 1
 fi
 
-if [ "$EXECUTION_MODE" == "update" ]; then
+if [ "$EXECUTION_MODE" = "update" ]; then
   stop_response=$(synowebapi --exec api=SYNO.Docker.Container version=1 method=stop name="$GITLAB_CONTAINER_NAME" 2> /dev/null)
   stop_ok=$(echo "$stop_response" | jq -r ".success")
-  if [ "$stop_ok" == "false" ]; then
+  if [ "$stop_ok" = "false" ]; then
         echo "failed to stop container, aborting!"
         echo "$stop_response"
         exit 1
@@ -234,7 +234,7 @@ if [ "$EXECUTION_MODE" == "update" ]; then
 
   delete_response=$(synowebapi --exec api=SYNO.Docker.Container version=1 method=delete name="$GITLAB_CONTAINER_NAME" force=true preserve_profile=false 2> /dev/null)
   delete_ok=$(echo "$delete_response" | jq -r ".success")
-  if [ "$delete_ok" == "false" ]; then
+  if [ "$delete_ok" = "false" ]; then
     echo "failed to delete container, aborting!"
     echo "$delete_response"
     exit 1
@@ -243,22 +243,22 @@ fi
 
 create_response=$(synowebapi --exec api=SYNO.Docker.Container version=1 method=create is_run_instantly=false profile="$(cat $GITLAB_CONTAINER_CONFIG)" 2> /dev/null)
 create_ok=$(echo "$create_response" | jq -r ".success")
-if [ "$create_ok" == "false" ]; then
+if [ "$create_ok" = "false" ]; then
   echo "container create failed!"
   echo "$create_response"
   exit 1
 fi
 
 # update package information and link
-if [ "$EXECUTION_MODE" == "install" ]; then
+if [ "$EXECUTION_MODE" = "install" ]; then
   echo $(jq --arg port "$GITLAB_HTTP_PORT" '.[][].port = $port' "$PKG_PATH/target/ui/config") > "$PKG_PATH/target/ui/config"
-elif [ "$EXECUTION_MODE" == "update" ]; then
+elif [ "$EXECUTION_MODE" = "update" ]; then
   GITLAB_HTTP_PORT=$(docker inspect "$GITLAB_CONTAINER_NAME" | jq -r '.[].HostConfig.PortBindings."80/tcp"[].HostPort')
   GITLAB_HTTPS_PORT=$(docker inspect "$GITLAB_CONTAINER_NAME" | jq -r '.[].HostConfig.PortBindings."443/tcp"[].HostPort')
 
   CURRENT_PROTOCOL=$(cat "$PKG_PATH/target/ui/config" | jq -r '.[][].protocol')
   GITLAB_ACTIVE_PORT="$GITLAB_HTTP_PORT"
-  if [ "$CURRENT_PROTOCOL" == "https" ]; then
+  if [ "$CURRENT_PROTOCOL" = "https" ]; then
     GITLAB_ACTIVE_PORT="$GITLAB_HTTPS_PORT"
   fi
   echo $(jq --arg port "$GITLAB_ACTIVE_PORT" '.[][].port = $port' "$PKG_PATH/target/ui/config") > "$PKG_PATH/target/ui/config"
@@ -277,7 +277,7 @@ CONTAINER_ID=$(docker ps -q -f name=^"$GITLAB_CONTAINER_NAME"$)
 if [ -z "$CONTAINER_ID" ]; then
   start_response=$(synowebapi --exec api=SYNO.Docker.Container version=1 method=start name="$GITLAB_CONTAINER_NAME" 2> /dev/null)
   start_ok=$(echo "$start_response" | jq -r ".success")
-  if [ "$start_ok" == "false" ]; then
+  if [ "$start_ok" = "false" ]; then
     echo "container failed to start!"
     echo "$start_response"
     exit 1

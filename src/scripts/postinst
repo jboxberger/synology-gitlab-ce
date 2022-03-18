@@ -14,7 +14,7 @@ else
 
     CURRENT_PROTOCOL=$(cat "$PKG_PATH/target/ui/config" | jq -r '.[][].protocol')
     GITLAB_ACTIVE_PORT="$GITLAB_HTTP_PORT"
-    if [ "$CURRENT_PROTOCOL" == "https" ]; then
+    if [ "$CURRENT_PROTOCOL" = "https" ]; then
       GITLAB_ACTIVE_PORT="$GITLAB_HTTPS_PORT"
     fi
 

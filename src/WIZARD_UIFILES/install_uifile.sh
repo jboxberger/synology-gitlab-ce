@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/bin/sh
 PACKAGE_TYPE=""
 GITLAB_IMAGE_VERSION=""
 
@@ -202,7 +202,7 @@ main()
 	install_page=$(page_append "$install_page" "$memory_check_page")
 
 
-	if [ "$PACKAGE_TYPE" == "advanced" ]; then
+	if [ "$PACKAGE_TYPE" = "advanced" ]; then
     install_summary_page="$(PageAdvancedSettings)"
     install_page=$(page_append "$install_page" "$install_summary_page")
   else

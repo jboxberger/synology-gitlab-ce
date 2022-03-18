@@ -1,4 +1,4 @@
-#!/usr/bin/env bash
+#!/bin/sh
 . "$(dirname $0)"/common
 
 ###########################################################
@@ -92,7 +92,7 @@ fi
 
 if [ -z "$GITLAB_HTTPS_PORT" ]; then
   GITLAB_HTTPS_PORT=$(docker inspect synology-gitlab-ce | jq -r '.[].HostConfig.PortBindings."443/tcp"[].HostPort')
-  if [ -z "$GITLAB_HTTPS_PORT" ] || [ "$GITLAB_HTTPS_PORT" == "null" ]; then
+  if [ -z "$GITLAB_HTTPS_PORT" ] || [ "$GITLAB_HTTPS_PORT" = "null" ]; then
     read -ep "gitlab https port? [default: $GITLAB_HTTPS_PORT_DEFAULT]: " GITLAB_HTTPS_PORT
     if [ -z "$GITLAB_HTTPS_PORT" ]; then
       GITLAB_HTTPS_PORT="$GITLAB_HTTPS_PORT_DEFAULT"

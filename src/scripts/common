@@ -78,9 +78,9 @@ validate_port() {
       exit 1
   fi
 
-  if [ "$check_use" == "1" ]; then
+  if [ "$check_use" = "1" ]; then
     in_use=$(port_in_use "$port")
-    if [ "$in_use" == "1" ]; then
+    if [ "$in_use" = "1" ]; then
       echo "error, port '$port' is already in use by another service"
       exit 1
     fi

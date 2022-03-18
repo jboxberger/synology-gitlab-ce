@@ -1,4 +1,4 @@
-#!/usr/bin/env bash
+#!/bin/sh
 # include common
 . "$(dirname $0)"/common
 
