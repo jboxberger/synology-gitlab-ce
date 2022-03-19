@@ -14,6 +14,7 @@ You can download the SPK file in the [Releases](https://github.com/jboxberger/sy
 ### Hardware Requirements:
 - 1 CPU core ( 2 cores is recommended )
 - 2 GB RAM ( 4GB RAM is recommended )
+- DSM 6.0 and DSM 7.0 compatible
 
 ### Classic:
 very simplistic package, installation and basic configuration over DSM, no ssh or root privileges 
