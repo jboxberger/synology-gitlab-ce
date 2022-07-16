@@ -34,7 +34,7 @@ as root to get the setup done. This is a more flexible variant because this way 
 settings and an update simply exports you current container configuration and imports it again with a modified GitLab image version.
 This way all your configuration remains the same and you can downgrade and upgrade as you like. As far as GitLab supports the downgrade
 with your specific dataset. The ssh installer/updater gives you also the ability to run multiple gitlab container instances with 
-different container/versions and different data shares. You can test your upgrades and migrations without andy risk and downtime.
+different container/versions and different data shares. You can test your upgrades and migrations without any risk and downtime.
 
 ![Advanced installer DSM image](images/gitlab-ce-advanced-1.png "Advanced installer DSM")
 
