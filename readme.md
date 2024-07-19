@@ -80,6 +80,18 @@ Except "jq" there are no special packages/binaries required.
 ./build.sh --version=13.4.3-ce.0 --dsm=7 --type=classic
 ```
 
+### GitLab Upgrade Path
+It's highly recommended to follow the upgrade path especially if you update to another major release. You can check the
+recommended upgrade path here. Please tak your time and make backups in between updates. Be Patient during update, this
+may take up to 30 minutes. You can see the progress in the Docker app in the Details->Protocol Tab. Once no new lines 
+occur in the protocol and the container consume over 4GB RAM, the update should be complete.   
+```bash
+https://gitlab-com.gitlab.io/support/toolbox/upgrade-path/?edition=ce
+```
+
+### Classic Updater
+Download the desired SPK Version and install it over the existing Gitlab Installation. 
+
 ### Advanced Installer/Updater
 ```bash
 # Location: /var/packages/synology-gitlab-ce/scripts
@@ -249,7 +261,3 @@ sudo docker exec -it synology_gitlab bash -c "sudo -u git -H bundle exec rake gi
 # Regarding to this post is everything fine as far as the restore doesn't break.
 # Quote: "We ignore 'does not exist' and 'must be owner' of errors"
 ```
-
-### GitLab Upgrade Path
-
-https://gitlab-com.gitlab.io/support/toolbox/upgrade-path/?edition=ce
