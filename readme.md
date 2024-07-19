@@ -249,3 +249,7 @@ sudo docker exec -it synology_gitlab bash -c "sudo -u git -H bundle exec rake gi
 # Regarding to this post is everything fine as far as the restore doesn't break.
 # Quote: "We ignore 'does not exist' and 'must be owner' of errors"
 ```
+
+### GitLab Upgrade Path
+
+https://gitlab-com.gitlab.io/support/toolbox/upgrade-path/?edition=ce
