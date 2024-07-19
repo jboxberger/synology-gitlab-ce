@@ -84,7 +84,7 @@ Except "jq" there are no special packages/binaries required.
 It's highly recommended to follow the upgrade path especially if you update to another major release. You can check the
 recommended upgrade path [here](https://gitlab-com.gitlab.io/support/toolbox/upgrade-path/?edition=ce). Please take your 
 time and make backups in between updates. Be Patient during update, this may take up to 30 minutes. You can see the 
-progress in the Docker app in the Details->Protocol Tab. Once no new lines occur in the protocol and the container 
+progress in the Docker app in the Details->Protocol tab. Once no new lines occur in the protocol and the container 
 consume over 4GB RAM, the update should be complete.   
 
 see: https://gitlab-com.gitlab.io/support/toolbox/upgrade-path/?edition=ce
