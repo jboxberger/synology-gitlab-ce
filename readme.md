@@ -38,13 +38,13 @@ different container/versions and different data shares. You can test your upgrad
 
 ![Advanced installer DSM image](images/gitlab-ce-advanced-1.png "Advanced installer DSM")
 
-**Install Instance**
+**Install Advanced Instance**
 ![Advanced installer install image](images/gitlab-ce-advanced-3.png "Advanced installer install")
 
-**Update Instance**
+**Update Advanced Instance**
 ![Advanced installer update image](images/gitlab-ce-advanced-4.png "Advanced installer update")
 
-**Multiple Instances**
+**Multiple Advanced Instances**
 ![Advanced multiple instances](images/gitlab-ce-advanced-2.png "Advanced multiple instances")
 
 ### Overview Advanced vs Classic
@@ -89,10 +89,11 @@ occur in the protocol and the container consume over 4GB RAM, the update should 
 https://gitlab-com.gitlab.io/support/toolbox/upgrade-path/?edition=ce
 ```
 
-### Classic Updater
-Download the desired SPK Version and install it over the existing Gitlab Installation. 
+### Install/Update Classic Instance
+Download the desired SPK Version and install it. If you have a previous version of Gitlab installed, just install the 
+new SPK over the existing Gitlab installation. This will automatically update the existing installation.  
 
-### Advanced Installer/Updater
+### Install Advanced Instance
 ```bash
 # Location: /var/packages/synology-gitlab-ce/scripts
 # Syntax: gitlab <action> <container> [options]
@@ -106,7 +107,6 @@ Download the desired SPK Version and install it over the existing Gitlab Install
 #   --port-http  - http host port
 #   --port-https - https host port
 
-# install
 cd /var/packages/synology-gitlab-ce/scripts && \
 sudo sh gitlab install synology-gitlab-ce \
 --version=13.4.3-ce.0 \
@@ -114,8 +114,10 @@ sudo sh gitlab install synology-gitlab-ce \
 --port-ssh=30022 \
 --port-http=30080 \
 --port-https=30443
+```
 
-# update
+### Update Advanced Instance
+```bash
 cd /var/packages/synology-gitlab-ce/scripts && \
 sudo sh gitlab update synology-gitlab-ce --version=13.4.5-ce.0
 ```
