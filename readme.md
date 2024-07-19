@@ -242,6 +242,20 @@ vi /etc/gitlab/gitlab.rb
   nginx['listen_port'] = 80
 ```
 
+### Create GitLab Runner
+Migration can only be done within the same GitLab version. Its is basically a backup from synology-gitlab package and restore to
+the synology-gitlab-ce package.
+```bash
+# 1) ssh into your synology and run 
+sudo ln -s /var/run/docker.sock /volume1/docker/docker.sock
+# 2) download tools/gitlab-runner.json and upload to your synology on any folder over DSM (fil should be accessible over DSM)
+# 3) Go to your Docker App Settings->Import and select the gitlab-runner.json and start the import
+# 4) bash into your gitlab-runner container
+docker exec -it <gitlab-runner-name> bash
+# 5) execute the registration command you get from here () http://<external_url>:<external_port>/admin/runners/new
+gitlab-runner register  --url http://<external_url>:<external_port>  --token <token>
+```
+
 
 ### Migration from [synology-gitlab](https://github.com/jboxberger/synology-gitlab) package
 Migration can only be done within the same GitLab version. Its is basically a backup from synology-gitlab package and restore to
