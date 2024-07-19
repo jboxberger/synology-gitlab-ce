@@ -225,6 +225,24 @@ sudo docker restart "<gitlab-container-name>"
 sudo docker exec -it "<gitlab-container-name>" gitlab-rake gitlab:check SANITIZE=true
 ```
 
+### Set external URL
+The Problem here is that the nginx within the container is running on port 80 and this is not exposeable to your 
+DSM without big hassle. If you are not familiar with vi editor, please see: [How to edit with vi eidtor](https://www.redhat.com/sysadmin/introduction-vi-editor).
+```bash
+# connect to gitlab container
+sudo docker exec -it "<gitlab-container-name>" bash 
+
+# edit config file 
+vi /etc/gitlab/gitlab.rb
+  # search for '# external_url 'GENERATED_EXTERNAL_URL'
+  external_url 'http://<external_url>:<external_port>'
+  # the port in the external_url force nginx to run on another port, we have to set it back to 80/443 because of our 
+  # container port mapping
+  # search for '# nginx['listen_port'] = nil'
+  nginx['listen_port'] = 80
+```
+
+
 ### Migration from [synology-gitlab](https://github.com/jboxberger/synology-gitlab) package
 Migration can only be done within the same GitLab version. Its is basically a backup from synology-gitlab package and restore to
 the synology-gitlab-ce package.
