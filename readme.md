@@ -144,6 +144,7 @@ For configuration of the omnibus based GitLab image please refer to this documen
 # after any change to the gitlab configuration you need to reconfigure 
 # gitlab and restart the services, which can be done with this two 
 # commands from your ssh terminal   
+# gitlab omnibus config: /etc/gitlab/gitlab.rb
 
 sudo docker exec -t "<gitlab-container-name>" bash -c "gitlab-ctl reconfigure"
 sudo docker exec -t "<gitlab-container-name>" bash -c "gitlab-ctl restart"
