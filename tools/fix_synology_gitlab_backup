@@ -1,21 +1,19 @@
 #!/usr/bin/env bash
 
+trap "exit 1" 10
+PROC="$$"
+
 ###########################################################
 # CHECK DEPENDENCIES!
 ###########################################################
-DEPENDENCIES_OK=1
 DEPENDENCIES_LIST="tar gzip basename"
 echo "$DEPENDENCIES_LIST" | tr ' ' '\n' | while read item; do
   if [ -z $(which "$item" 2>/dev/null) ]; then
     echo "$item is not installed."
-    DEPENDENCIES_OK=0
+    echo "dependencies not met, exiting."
+    kill -10 $PROC
   fi
 done
-
-if [ $DEPENDENCIES_OK -eq 0 ]; then
-  echo "dependencies not met, exiting."
-  exit 1
-fi
 
 ###########################################################
 # FUNCTIONS
