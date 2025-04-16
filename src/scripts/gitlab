@@ -210,6 +210,11 @@ fi
 echo $(jq --arg image "$GITLAB_IMAGE_NAME:$GITLAB_VERSION_TARGET" '.image = $image' $GITLAB_CONTAINER_CONFIG) > $GITLAB_CONTAINER_CONFIG
 echo $(jq --arg name "$GITLAB_CONTAINER_NAME" '.name = $name' $GITLAB_CONTAINER_CONFIG) > $GITLAB_CONTAINER_CONFIG
 
+# new docker container cmd from "17.10.0"
+if [ $(version "$version") -ge $(version "17.10.0") ]; then
+  echo $(jq --arg cmd "/assets/init-container" '.cmd = $cmd' $GITLAB_CONTAINER_CONFIG) > $GITLAB_CONTAINER_CONFIG
+fi
+
 # pull image
 pull_success=0
 if [ -z "$(docker images -q $GITLAB_IMAGE_NAME:$GITLAB_VERSION_TARGET 2> /dev/null)" ]; then
