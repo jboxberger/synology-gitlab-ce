@@ -98,13 +98,13 @@ new SPK over the existing Gitlab installation. This will automatically update th
 ### Install Advanced Instance
 ```bash
 # Location: /var/packages/synology-gitlab-ce/scripts
-# Syntax: gitlab <action> <container> [options]
+# Syntax: gitlab install <container> [options]
 # arguments:
-#   action       - install or update
 #   container    - container name
 # options:
 #   --version    - GitLab CE version e.g. 13.4.3-ce.0
 #   --share      - destination folder which will contain shared gitlab files
+#   --hostname   - the URL/Hostname of your synology
 #   --port-ssh   - ssh host port
 #   --port-http  - http host port
 #   --port-https - https host port
@@ -120,6 +120,13 @@ sudo sh gitlab install synology-gitlab-ce \
 
 ### Update Advanced Instance
 ```bash
+# Location: /var/packages/synology-gitlab-ce/scripts
+# Syntax: gitlab update <container> [options]
+# arguments:
+#   container    - container name
+# options:
+#   --version    - GitLab CE version e.g. 13.4.3-ce.0
+
 cd /var/packages/synology-gitlab-ce/scripts && \
 sudo sh gitlab update synology-gitlab-ce --version=13.4.5-ce.0
 ```

@@ -135,6 +135,7 @@ cd /var/packages/synology-gitlab-ce/scripts && &bsol;
 sudo sh gitlab install synology-gitlab-ce &bsol;
 --version=$GITLAB_IMAGE_VERSION &bsol;
 --share=synology-gitlab-ce &bsol;
+--hostname=$(hostname) &bsol;
 --port-ssh=30022 &bsol;
 --port-http=30080 &bsol;
 --port-https=30443
