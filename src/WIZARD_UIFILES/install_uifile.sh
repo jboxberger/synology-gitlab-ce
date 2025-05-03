@@ -2,6 +2,11 @@
 PACKAGE_TYPE=""
 GITLAB_IMAGE_VERSION=""
 
+HOSTNAME=$(hostname)
+GITLAB_SHELL_SSH_PORT="30022"
+GITLAB_HTTP_PORT="30080"
+GITLAB_HTTPS_PORT="30443"
+
 memory_lt()
 {
 	mem_total=$(/bin/free -m | grep Mem |awk '{print $2}')
@@ -35,7 +40,7 @@ mem_total_check_fail="A minimum of {1} RAM is required to install or update <a h
 mem_total_check_warning="A minimum of {1} RAM is required to install or update GitLab. Insufficient memory may cause unexpected errors when you run GitLab, so you are recommended to expand the memory of your Synology NAS. <a href=\"{2}\" target=\"_blank\">Learn more</a>."
 additional_memory_required="Insufficient memory"
 
-hostname_label="Domain name"
+hostname_label="Hostname/Domain"
 hostname_desc="The hostname of your synology server, also used in emails ("localhost" or "127.0.0.1" will not work)"
 
 ssh_port_label="SSH port number"
@@ -47,9 +52,9 @@ http_port_desc="Please enter the HTTP port number."
 https_port_label="HTTPS port number"
 https_port_desc="Please enter the HTTPS port number."
 
-PageInstallSetting()
-{
+PageInstallSetting() {
 	domain_value_warning="<br><b>$domain_value_warning</b>"
+  GITLAB_ROOT_PASSWORD_DEFAULT="$(tr -dc 'A-Za-z0-9!?%=' < /dev/urandom | head -c 9)!"
 
   local page=$(cat << EOF
 {
@@ -61,7 +66,18 @@ PageInstallSetting()
     "subitems": [{
       "key": "pkgwizard_hostname",
       "desc": "$hostname_label",
-      "defaultValue": "$(hostname)",
+      "defaultValue": "$HOSTNAME",
+      "validator": {
+        "allowBlank": false
+      }
+    }]
+  },{
+    "type": "textfield",
+    "subitems": [{
+      "key": "pkgwizard_password",
+      "desc": "$password_label",
+      "defaultValue": "$GITLAB_ROOT_PASSWORD_DEFAULT",
+      "hidden" : true,
       "validator": {
         "allowBlank": false
       }
@@ -72,7 +88,7 @@ PageInstallSetting()
     "subitems": [{
       "key": "pkgwizard_ssh_port",
       "desc": "$ssh_port_label",
-      "defaultValue": "30022",
+      "defaultValue": "$GITLAB_SHELL_SSH_PORT",
       "validator": {
         "allowBlank": false,
         "regex": {
@@ -86,7 +102,7 @@ PageInstallSetting()
 		"subitems": [{
 			"key": "pkgwizard_http_port",
 			"desc": "$http_port_label",
-			"defaultValue": "30080",
+			"defaultValue": "$GITLAB_HTTP_PORT",
 			"validator": {
 				"allowBlank": false,
 				"regex": {
@@ -100,7 +116,7 @@ PageInstallSetting()
 		"subitems": [{
 			"key": "pkgwizard_https_port",
 			"desc": "$https_port_label",
-			"defaultValue": "30443",
+			"defaultValue": "$GITLAB_HTTPS_PORT",
 			"validator": {
 				"allowBlank": false,
 				"regex": {
@@ -115,9 +131,46 @@ EOF
 	echo "$page"
 }
 
+PageInstallSummary() {
+	domain_value_warning="<br><b>$domain_value_warning</b>"
 
-PageAdvancedSettings()
+  local page=$(cat << EOF
 {
+	"step_title": "$install_title",
+	"invalid_next_disabled_v2": true,
+	"activeate": "{
+	  const summary = document.getElementById('pkgwizard-install-summary');
+	  if(summary) {
+	  	  const hostname = document.querySelector('[name=\"pkgwizard_hostname\"]').value;
+    	  const http_port = document.querySelector('[name=\"pkgwizard_http_port\"]').value;
+    	  const password = document.querySelector('[name=\"pkgwizard_password\"]').value;
+
+    	  summary.innerHTML =
+    	    'Url : <span style=\"user-select: text; cursor: initial;\"><a href=\"http://'+hostname+':'+http_port+'\" target=\"_blankk\">http://'+hostname+':'+http_port+'</a></span><br>' +
+          'User: <span style=\"user-select: text; cursor: initial;\">root</span><br>' +
+          'Pass: <span style=\"user-select: text; cursor: initial;\">'+password+'</span><br><br>' +
+          '(to copy values just mark it and press CTRL+C)<br>';
+	  }
+	}",
+	"items": [{
+    "key": "summary",
+    "desc": "
+After the installation is complete, your GitLab Docker container needs couple of minutes to boot. Please be patient!<br>
+<br>
+<div id=\"pkgwizard-install-summary\" style=\"font-family: monospace;\">
+  <br><br><br><br><br><br> <!-- reserve some space -->
+</div><br>
+<span style=\"color: red;\">WARNING!</span> please change the root password after first login!
+"
+  }]
+}
+EOF
+)
+	echo "$page"
+}
+
+
+PageAdvancedSettings() {
 	domain_value_warning="<br><b>$domain_value_warning</b>"
 
   local page=$(cat << EOF
@@ -198,17 +251,15 @@ main()
 		memory_check_page="$(PageMemoryCheck true)"
 	fi
 
-
-
 	install_page=$(page_append "$install_page" "$memory_check_page")
 
-
 	if [ "$PACKAGE_TYPE" = "advanced" ]; then
-    install_summary_page="$(PageAdvancedSettings)"
-    install_page=$(page_append "$install_page" "$install_summary_page")
+	  install_title="${install_title} Advanced";
+    install_page=$(page_append "$install_page" "$(PageAdvancedSettings)")
   else
-    install_setting_page="$(PageInstallSetting)"
-    install_page=$(page_append "$install_page" "$install_setting_page")
+    install_title="${install_title} Classic";
+    install_page=$(page_append "$install_page" "$(PageInstallSetting)")
+    install_page=$(page_append "$install_page" "$(PageInstallSummary)")
 	fi
 
 	echo "[$install_page]" > "${SYNOPKG_TEMP_LOGFILE}"

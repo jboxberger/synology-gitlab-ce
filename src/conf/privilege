@@ -3,5 +3,5 @@
     "run-as": "package"
   },
   "username": "gitlab",
-  "groupname": "gitlab"
+  "join-groupname": "system"
 }

@@ -174,6 +174,7 @@ elif [ "$PACKAGE_TYPE" = "classic" ]; then
   rm -f "$DIRECTORY_TMP/scripts/gitlab"
   rm -rf "$DIRECTORY_TMP/scripts/templates"
   echo $(jq --arg version "$GITLAB_IMAGE_VERSION" '.docker.services[0].tag = $version' "$DIRECTORY_TMP/conf/resource") > "$DIRECTORY_TMP/conf/resource"
+  echo -e "ARG GITLAB_IMAGE_VERSION=$GITLAB_IMAGE_VERSION\n\n$(cat "$DIRECTORY_TMP/package/build/Dockerfile")" > "$DIRECTORY_TMP/package/build/Dockerfile"
 fi
 
 FILES="$DIRECTORY_TMP/WIZARD_UIFILES/*"
