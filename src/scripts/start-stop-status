@@ -1,16 +1,9 @@
 #!/bin/sh
-. "$(dirname $0)"/common
 
 case "$1" in
     start)
     ;;
     stop)
-    ;;
-    status)
-      "$DOCKER_INSPECT" "$PKG_NAME" | grep -q "\"Status\": \"running\"," || exit 1
-    ;;
-    log)
-      echo ""
     ;;
 esac
 

@@ -1,7 +1,7 @@
 package="synology-gitlab-ce"
 version="13.4.4-0"
 displayname="GitLab CE"
-description="Stock GitLab CE docker container"
+description="GitLab CE docker container"
 
 arch="noarch"
 os_min_ver="7.0-00000"

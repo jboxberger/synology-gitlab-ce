@@ -83,17 +83,15 @@ help()
    echo "  --version - GitLab CE version e.g. 13.4.3-ce.0, "
    echo "              when no version given, a selection list of the latest"
    echo "              available versions is shown"
-   echo "  --type    - package type (classic|advanced) - default: classic"
    echo "  --dsm     - target DSM version (6|7) - default: 7"
    echo
-   echo "Example: build --version=13.4.3-ce.0 --dsm=7 --type=classic"
+   echo "Example: build --version=13.4.3-ce.0 --dsm=7"
    exit 0
 }
 
 ###########################################################
 # DEFAULT VARIABLES
 ###########################################################
-PACKAGE_TYPE="classic"
 DSM_VERSION="7"
 GITLAB_IMAGE_NAME="gitlab/gitlab-ce"
 GITLAB_IMAGE_VERSION=""
@@ -110,9 +108,6 @@ do
       --version=*)
           GITLAB_IMAGE_VERSION="${i#*=}"
       ;;
-      --type=*)
-          PACKAGE_TYPE="${i#*=}"
-      ;;
       --dsm=*)
           DSM_VERSION="${i#*=}"
       ;;
@@ -127,11 +122,6 @@ do
 done
 # set positional arguments in their proper place
 eval set -- "$PARAMS"
-
-if [ "$PACKAGE_TYPE" != "classic" ] && [ "$PACKAGE_TYPE" != "advanced" ]; then
-  echo "type $PACKAGE_TYPE is unknown, only classic|advanced allowed!"
-  exit 1
-fi
 
 # Validate DSM version
 if [ "$DSM_VERSION" != "6" ] && [ "$DSM_VERSION" != "7" ]; then
@@ -151,13 +141,7 @@ if [ "$(expr "$GITLAB_IMAGE_VERSION" : '^[0-9\.]*-ce\.[0-9]$')" -eq 0 ]; then
   exit 1
 fi
 
-# Classic not supported on DSM6
-if [ "$DSM_VERSION" = "6" ] && [ "$PACKAGE_TYPE" = "classic" ]; then
-  echo "package type '$PACKAGE_TYPE' is not supported for DSM$DSM_VERSION"
-  exit 1
-fi
-
-echo -n "building '$GITLAB_IMAGE_VERSION' as '$PACKAGE_TYPE' for DSM$DSM_VERSION... "
+echo -n "building '$GITLAB_IMAGE_VERSION' for DSM$DSM_VERSION... "
 
 ########################################################################################################################
 # PACKAGE BUILD
@@ -168,19 +152,10 @@ START_TIME=$(date +%s.%3N)
 [ -d "$DIRECTORY_TMP" ] && rm -rf "$DIRECTORY_TMP"
 
 cp -r ./src "$DIRECTORY_TMP"
-if [ "$PACKAGE_TYPE" = "advanced" ]; then
-  rm -f "$DIRECTORY_TMP/conf/resource"
-elif [ "$PACKAGE_TYPE" = "classic" ]; then
-  rm -f "$DIRECTORY_TMP/scripts/gitlab"
-  rm -rf "$DIRECTORY_TMP/scripts/templates"
-  echo $(jq --arg version "$GITLAB_IMAGE_VERSION" '.docker.services[0].tag = $version' "$DIRECTORY_TMP/conf/resource") > "$DIRECTORY_TMP/conf/resource"
-  echo -e "ARG GITLAB_IMAGE_VERSION=$GITLAB_IMAGE_VERSION\n\n$(cat "$DIRECTORY_TMP/package/build/Dockerfile")" > "$DIRECTORY_TMP/package/build/Dockerfile"
-fi
 
 FILES="$DIRECTORY_TMP/WIZARD_UIFILES/*"
 for f in $FILES
 do
-  sed -i -e "/^PACKAGE_TYPE=/s/=.*/=\"$PACKAGE_TYPE\"/" "$f"
   sed -i -e "/^GITLAB_IMAGE_VERSION=/s/=.*/=\"$GITLAB_IMAGE_VERSION\"/" "$f"
 done
 
@@ -192,11 +167,10 @@ GITLAB_IMAGE_VERSION_SHORT=$(echo "$GITLAB_IMAGE_VERSION" | cut -f1 -d-)
 # UPDATE INFO FILE
 sed -i -e "/^version=/s/=.*/=\"$GITLAB_IMAGE_VERSION_SHORT\"/" "$DIRECTORY_TMP/INFO"
 sed -i -e "/^os_min_ver=/s/=.*/=\"$DSM_VERSION.0-00000\"/" "$DIRECTORY_TMP/INFO"
-sed -i -e "/^description=/s/=.*/=\"GitLab CE docker container ($PACKAGE_TYPE)\"/" "$DIRECTORY_TMP/INFO"
 sed -i -e "/^extractsize=/s/=.*/=\"$EXTRACTSIZE\"/" "$DIRECTORY_TMP/INFO"
 
 # CREATE FILE
-OUTPUT_FILE_NAME="synology-gitlab-ce-$GITLAB_IMAGE_VERSION_SHORT-dsm$DSM_VERSION-$PACKAGE_TYPE.spk"
+OUTPUT_FILE_NAME="synology-gitlab-ce-$GITLAB_IMAGE_VERSION_SHORT-dsm$DSM_VERSION.spk"
 cd "$DIRECTORY_TMP/" && tar --format=gnu -cf "../$DIRECTORY_SPK/$OUTPUT_FILE_NAME" * && cd ../
 
 rm -rf "$DIRECTORY_TMP"

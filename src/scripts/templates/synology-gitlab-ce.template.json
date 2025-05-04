@@ -49,11 +49,6 @@
       "container_port" : __PORT_HTTP__,
       "host_port" : __PORT_HTTP__,
       "type" : "tcp"
-    },
-    {
-      "container_port" : __PORT_HTTPS__,
-      "host_port" : __PORT_HTTPS__,
-      "type" : "tcp"
     }
   ],
   "privileged" : false,

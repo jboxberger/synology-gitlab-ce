@@ -1,7 +1,6 @@
 [{
-	"step_title": "Remove GitLab database",
+	"step_title": "Remove GitLab Package",
 	"items": [{
-    "desc": "<span style=\"color:red\">WARNING ALL GITLAB DATA WILL BE DELETED!</span><br>If you have not done your Backup yet, please cancel the uninstall and do it NOW!
-    <a href=\"https://github.com/jboxberger/synology-gitlab-ce?tab=readme-ov-file#backup\" target=\"_blank\">Here is tutorial how to do it</a>."
+    "desc": "Your are about to uninstall this GitLab helper package. All your Docker container and data stays untouched, you have to remove it manually."
 	}]
 }]

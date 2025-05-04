@@ -5,12 +5,4 @@
 ### Actions before package uninstalled
 ### ex. backup package data.
 
-. "$(dirname $0)"/common
-
-PKG_CONF="$ETC_PATH/config"
-
-if [ -f "$PKG_CONF" ]; then
-  rm -f "$PKG_CONF"
-fi
-
 exit 0

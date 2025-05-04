@@ -16,7 +16,6 @@ help() {
    echo "  --hostname   - the URL/Hostname of your synology"
    echo "  --port-ssh   - ssh host port"
    echo "  --port-http  - http host port"
-   echo "  --port-https - https host port"
    echo
    echo "Example: gitlab install synology-gitlab-ce --version=13.4.3-ce.0 --share=gitlab-dir"
    echo
@@ -37,7 +36,6 @@ help() {
 # defaults
 GITLAB_SSH_PORT_DEFAULT=30022
 GITLAB_HTTP_PORT_DEFAULT=30080
-GITLAB_HTTPS_PORT_DEFAULT=30443
 GITLAB_HOSTNAME_DEFAULT=$(hostname)
 GITLAB_ROOT_PASSWORD_DEFAULT="$(tr -dc 'A-Za-z0-9!?%=' < /dev/urandom | head -c 9)!"
 GITLAB_CONTAINER_NAME_DEFAULT="$PKG_NAME"
@@ -49,10 +47,7 @@ GITLAB_VERSION_TARGET=""
 GITLAB_SHARE_NAME=""
 GITLAB_SSH_PORT=0
 GITLAB_HTTP_PORT=0
-GITLAB_HTTPS_PORT=0
 GITLAB_HOSTNAME=""
-
-
 
 ###########################################################
 # PARAMETER HANDLING
@@ -72,9 +67,6 @@ do
       ;;
       --port-http=*)
           GITLAB_HTTP_PORT="${i#*=}"
-      ;;
-      --port-https=*)
-          GITLAB_HTTPS_PORT="${i#*=}"
       ;;
       --hostname=*)
           GITLAB_HOSTNAME="${i#*=}"
@@ -168,14 +160,6 @@ if [ "$EXECUTION_MODE" = "install" ]; then
   fi
   validate_port "$GITLAB_HTTP_PORT" 1
 
-  if [ "$GITLAB_HTTPS_PORT" = "0" ]; then
-    read -ep "https port mapping 443:<host_port>? [default: $GITLAB_HTTPS_PORT_DEFAULT]: " GITLAB_HTTPS_PORT
-    if [ -z "$GITLAB_HTTPS_PORT" ] || [ "$GITLAB_HTTPS_PORT" = "443" ] ; then
-      GITLAB_HTTPS_PORT=$GITLAB_HTTPS_PORT_DEFAULT
-    fi
-  fi
-  validate_port "$GITLAB_HTTPS_PORT" 1
-
   if [ -z "$GITLAB_HOSTNAME" ]; then
     read -ep "hostname [default $GITLAB_HOSTNAME_DEFAULT]: " GITLAB_HOSTNAME
     if [ -z "$GITLAB_HOSTNAME" ]; then
@@ -198,7 +182,6 @@ echo "share           : $GITLAB_SHARE_NAME"
 echo "hostname        : $GITLAB_HOSTNAME"
 echo "ssh-port        : $GITLAB_SSH_PORT"
 echo "http-port       : $GITLAB_HTTP_PORT"
-echo "https-port      : $GITLAB_HTTPS_PORT"
 echo ""
 echo "URL             : http://$GITLAB_HOSTNAME:$GITLAB_HTTP_PORT"
 fi
@@ -233,7 +216,6 @@ if [ "$EXECUTION_MODE" = "install" ]; then
   sed -i -e "s|__ROOT_PASSWORD__|$GITLAB_ROOT_PASSWORD_DEFAULT|g" "$GITLAB_CONTAINER_CONFIG"
   sed -i -e "s|__PORT_SSH__|$GITLAB_SSH_PORT|g" "$GITLAB_CONTAINER_CONFIG"
   sed -i -e "s|__PORT_HTTP__|$GITLAB_HTTP_PORT|g" "$GITLAB_CONTAINER_CONFIG"
-  sed -i -e "s|__PORT_HTTPS__|$GITLAB_HTTPS_PORT|g" "$GITLAB_CONTAINER_CONFIG"
 fi
 
 # set image
@@ -288,16 +270,6 @@ fi
 if [ "$EXECUTION_MODE" = "install" ]; then
   echo $(jq --arg port "$GITLAB_HTTP_PORT" '.[][].port = $port' "$PKG_PATH/target/ui/config") > "$PKG_PATH/target/ui/config"
 elif [ "$EXECUTION_MODE" = "update" ]; then
-  GITLAB_HTTP_PORT=$(docker inspect "$GITLAB_CONTAINER_NAME" | jq -r '.[].HostConfig.PortBindings."80/tcp"[].HostPort')
-  GITLAB_HTTPS_PORT=$(docker inspect "$GITLAB_CONTAINER_NAME" | jq -r '.[].HostConfig.PortBindings."443/tcp"[].HostPort')
-
-  CURRENT_PROTOCOL=$(cat "$PKG_PATH/target/ui/config" | jq -r '.[][].protocol')
-  GITLAB_ACTIVE_PORT="$GITLAB_HTTP_PORT"
-  if [ "$CURRENT_PROTOCOL" = "https" ]; then
-    GITLAB_ACTIVE_PORT="$GITLAB_HTTPS_PORT"
-  fi
-  echo $(jq --arg port "$GITLAB_ACTIVE_PORT" '.[][].port = $port' "$PKG_PATH/target/ui/config") > "$PKG_PATH/target/ui/config"
-
   GITLAB_IMAGE_VERSION_SHORT=$(echo "$GITLAB_VERSION_TARGET" | cut -f1 -d-)
   sed -i -e "/^version=/s/=.*/=\"$GITLAB_IMAGE_VERSION_SHORT\"/" "/var/packages/$PKG_NAME/INFO"
 fi
