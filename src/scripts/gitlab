@@ -48,6 +48,7 @@ GITLAB_SHARE_NAME=""
 GITLAB_SSH_PORT=0
 GITLAB_HTTP_PORT=0
 GITLAB_HOSTNAME=""
+BACKUP_BEFORE_UPDATE=""
 
 ###########################################################
 # PARAMETER HANDLING
@@ -166,6 +167,13 @@ if [ "$EXECUTION_MODE" = "install" ]; then
       GITLAB_HOSTNAME="$GITLAB_HOSTNAME_DEFAULT"
     fi
   fi
+elif [ "$EXECUTION_MODE" = "update" ]; then
+  read -ep "create backup before update? (y/n) [default: y]: " BACKUP_BEFORE_UPDATE
+  if [ -z "$BACKUP_BEFORE_UPDATE" ] || [ "$BACKUP_BEFORE_UPDATE" = "y" ] || [ "$BACKUP_BEFORE_UPDATE" = "yes" ] ; then
+    BACKUP_BEFORE_UPDATE="yes"
+  else
+    BACKUP_BEFORE_UPDATE="no"
+  fi
 fi
 
 echo "============================================================"
@@ -174,16 +182,17 @@ echo "container       : $GITLAB_CONTAINER_NAME"
 echo "image           : $GITLAB_IMAGE_NAME"
 
 if [ "$EXECUTION_MODE" = "update" ]; then
-echo "version current : $(echo "$GITLAB_VERSION_CURRENT" | cut -f2 -d:)"
-echo "version new     : $GITLAB_VERSION_TARGET"
+  echo "version current : $(echo "$GITLAB_VERSION_CURRENT" | cut -f2 -d:)"
+  echo "version new     : $GITLAB_VERSION_TARGET"
+  echo "create backup   : $BACKUP_BEFORE_UPDATE"
 else
-echo "version         : $(echo "$GITLAB_VERSION_TARGET" | cut -f2 -d:)"
-echo "share           : $GITLAB_SHARE_NAME"
-echo "hostname        : $GITLAB_HOSTNAME"
-echo "ssh-port        : $GITLAB_SSH_PORT"
-echo "http-port       : $GITLAB_HTTP_PORT"
-echo ""
-echo "URL             : http://$GITLAB_HOSTNAME:$GITLAB_HTTP_PORT"
+  echo "version         : $(echo "$GITLAB_VERSION_TARGET" | cut -f2 -d:)"
+  echo "share           : $GITLAB_SHARE_NAME"
+  echo "hostname        : $GITLAB_HOSTNAME"
+  echo "ssh-port        : $GITLAB_SSH_PORT"
+  echo "http-port       : $GITLAB_HTTP_PORT"
+  echo ""
+  echo "URL             : http://$GITLAB_HOSTNAME:$GITLAB_HTTP_PORT"
 fi
 
 echo "============================================================"
@@ -216,6 +225,13 @@ if [ "$EXECUTION_MODE" = "install" ]; then
   sed -i -e "s|__ROOT_PASSWORD__|$GITLAB_ROOT_PASSWORD_DEFAULT|g" "$GITLAB_CONTAINER_CONFIG"
   sed -i -e "s|__PORT_SSH__|$GITLAB_SSH_PORT|g" "$GITLAB_CONTAINER_CONFIG"
   sed -i -e "s|__PORT_HTTP__|$GITLAB_HTTP_PORT|g" "$GITLAB_CONTAINER_CONFIG"
+elif [ "$EXECUTION_MODE" = "update" ]; then
+  if [ "$BACKUP_BEFORE_UPDATE" = "yes" ]; then
+    echo "backup gitlab configuration..."
+    docker exec -it "$GITLAB_CONTAINER_NAME" gitlab-ctl backup-etc
+    echo "backup gitlab data..."
+    docker exec -it "$GITLAB_CONTAINER_NAME" gitlab-backup
+  fi
 fi
 
 # set image
