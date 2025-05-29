@@ -18,6 +18,13 @@ done
 ###########################################################
 # FUNCTIONS
 ###########################################################
+compare_versions() {
+  local v1="$1"
+  local op="$2"
+  local v2="$3"
+  dpkg --compare-versions "$v1" $op "$v2" && echo "1"
+}
+
 dockerhub_get_available_image_version_list() {
   local image_name="$1"
   local page_size=20
@@ -83,16 +90,16 @@ help()
    echo "  --version - GitLab CE version e.g. 13.4.3-ce.0, "
    echo "              when no version given, a selection list of the latest"
    echo "              available versions is shown"
-   echo "  --dsm     - target DSM version (6|7) - default: 7"
+   echo "  --dsm     - target DSM version (6.0-6.2|7.0-7.2) - default: 7.1"
    echo
-   echo "Example: build --version=13.4.3-ce.0 --dsm=7"
+   echo "Example: build --version=13.4.3-ce.0 --dsm=7.1"
    exit 0
 }
 
 ###########################################################
 # DEFAULT VARIABLES
 ###########################################################
-DSM_VERSION="7"
+DSM_VERSION="7.1"
 GITLAB_IMAGE_NAME="gitlab/gitlab-ce"
 GITLAB_IMAGE_VERSION=""
 
@@ -124,9 +131,13 @@ done
 eval set -- "$PARAMS"
 
 # Validate DSM version
-if [ "$DSM_VERSION" != "6" ] && [ "$DSM_VERSION" != "7" ]; then
-  echo "DSM version $DSM_VERSION is unknown, only 6|7 allowed!"
-  exit 1
+DSM_VERSION_VALID=$([[ "$DSM_VERSION" =~ ^[6-7]\.[0-2]$ ]] && echo "yes")
+if [ "$DSM_VERSION_VALID" != "yes" ]; then
+  read -ep "DSM version $DSM_VERSION seems invalid, continue anyway? (y/n): " DSM_VERSION_VALID
+  if [ -z "$DSM_VERSION_VALID" ] || [ "$DSM_VERSION_VALID" != "y" ] && [ "$DSM_VERSION_VALID" != "yes" ] ; then
+    echo "Invalid DSM version, exiting!"
+    exit 1
+  fi
 fi
 
 # validate version
@@ -166,8 +177,12 @@ GITLAB_IMAGE_VERSION_SHORT=$(echo "$GITLAB_IMAGE_VERSION" | cut -f1 -d-)
 
 # UPDATE INFO FILE
 sed -i -e "/^version=/s/=.*/=\"$GITLAB_IMAGE_VERSION_SHORT\"/" "$DIRECTORY_TMP/INFO"
-sed -i -e "/^os_min_ver=/s/=.*/=\"$DSM_VERSION.0-00000\"/" "$DIRECTORY_TMP/INFO"
+sed -i -e "/^os_min_ver=/s/=.*/=\"$DSM_VERSION-00000\"/" "$DIRECTORY_TMP/INFO"
 sed -i -e "/^extractsize=/s/=.*/=\"$EXTRACTSIZE\"/" "$DIRECTORY_TMP/INFO"
+
+if [ $(compare_versions "$DSM_VERSION" "ge" "7.2") ]; then
+  sed -i -e "/^install_dep_packages=/s/=.*/=\"ContainerManager>=24.0.2-1535\"/" "$DIRECTORY_TMP/INFO"
+fi
 
 # CREATE FILE
 OUTPUT_FILE_NAME="synology-gitlab-ce-$GITLAB_IMAGE_VERSION_SHORT-dsm$DSM_VERSION.spk"
