@@ -48,7 +48,7 @@ main()
 {
 	local upgrade_page=""
 
-  install_title="${install_title} Advanced";
+  install_title="${install_title}";
   upgrade_page=$(page_append "$upgrade_page" "$(PageInstallSummary)")
 
 	echo "[$upgrade_page]" > "${SYNOPKG_TEMP_LOGFILE}"

@@ -183,7 +183,7 @@ main()
 
 	install_page=$(page_append "$install_page" "$memory_check_page")
 
-  install_title="${install_title} Advanced";
+  install_title="${install_title}";
   install_page=$(page_append "$install_page" "$(PageInstallSetting)")
   install_page=$(page_append "$install_page" "$(PageAdvancedSettings)")
 
