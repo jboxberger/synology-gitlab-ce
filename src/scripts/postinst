@@ -1,25 +1,10 @@
 #!/bin/sh
-
 . "$(dirname $0)"/common
 
 if [ ! -z "$pkgwizard_http_port" ]; then
     # new install
     if [ -f "$SYNOPKG_PKGDEST/ui/config" ]; then
         sed -i -e "s|__PORT__|$pkgwizard_http_port|g" "$SYNOPKG_PKGDEST/ui/config"
-    fi
-else
-    # upgrade
-    GITLAB_HTTP_PORT=$(docker_inspect "$PKG_NAME" | jq -r '.[].HostConfig.PortBindings."80/tcp"[].HostPort')
-    GITLAB_HTTPS_PORT=$(docker_inspect "$PKG_NAME" | jq -r '.[].HostConfig.PortBindings."443/tcp"[].HostPort')
-
-    CURRENT_PROTOCOL=$(cat "$PKG_PATH/target/ui/config" | jq -r '.[][].protocol')
-    GITLAB_ACTIVE_PORT="$GITLAB_HTTP_PORT"
-    if [ "$CURRENT_PROTOCOL" = "https" ]; then
-      GITLAB_ACTIVE_PORT="$GITLAB_HTTPS_PORT"
-    fi
-
-    if [ ! -z "$GITLAB_ACTIVE_PORT" ]; then
-      echo $(jq --arg port "$GITLAB_ACTIVE_PORT" '.[][].port = $port' "$PKG_PATH/target/ui/config") > "$PKG_PATH/target/ui/config"
     fi
 fi
 

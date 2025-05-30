@@ -19,6 +19,10 @@
     {
       "key" : "TERM",
       "value" : "xterm"
+    },
+    {
+      "key" : "GITLAB_OMNIBUS_CONFIG",
+      "value" : "external_url 'http://__HOSTNAME__:__PORT_HTTP__'; gitlab_rails['gitlab_shell_ssh_port'] = __PORT_SSH__; gitlab_rails['initial_root_password'] = \"__ROOT_PASSWORD__\""
     }
   ],
   "exporting" : false,
@@ -37,18 +41,13 @@
   "network_mode" : "bridge",
   "port_bindings" : [
     {
-      "container_port" : 22,
+      "container_port" : __PORT_SSH__,
       "host_port" : __PORT_SSH__,
       "type" : "tcp"
     },
     {
-      "container_port" : 80,
+      "container_port" : __PORT_HTTP__,
       "host_port" : __PORT_HTTP__,
-      "type" : "tcp"
-    },
-    {
-      "container_port" : 443,
-      "host_port" : __PORT_HTTPS__,
       "type" : "tcp"
     }
   ],

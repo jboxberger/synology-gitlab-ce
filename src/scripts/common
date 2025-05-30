@@ -5,6 +5,13 @@ PKG_NAME="synology-gitlab-ce"
 PKG_PATH="/var/packages/$PKG_NAME"
 ETC_PATH="$PKG_PATH/etc"
 SCRIPTS_PATH="$PKG_PATH/scripts"
+DOCKER_INSPECT="/usr/local/bin/docker_inspect"
+
+###########################################################
+# COLORES
+###########################################################
+RED='\033[0;31m'
+NC='\033[0m' # No Color
 
 ###########################################################
 # FUNCTIONS

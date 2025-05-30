@@ -5,8 +5,6 @@ case "$1" in
     ;;
     stop)
     ;;
-    status)
-    ;;
 esac
 
 exit 0

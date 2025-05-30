@@ -1,6 +1,11 @@
 #!/bin/sh
-PACKAGE_TYPE=""
 GITLAB_IMAGE_VERSION=""
+PKG_NAME="synology-gitlab-ce"
+install_title="Install GitLab CE"
+
+HOSTNAME=$(hostname)
+GITLAB_SHELL_SSH_PORT="30022"
+GITLAB_HTTP_PORT="30080"
 
 memory_lt()
 {
@@ -27,15 +32,12 @@ quote_json() {
 	sed -e 's|\\|\\\\|g' -e 's|\"|\\\"|g'
 }
 
-
-install_title="Install GitLab CE"
-
 recommended_memory="Recommended memory size"
 mem_total_check_fail="A minimum of {1} RAM is required to install or update <a href=\"{2}\" target=\"_blank\">the latest version of GitLab</a>. Please expand the memory of your Synology NAS and try again."
 mem_total_check_warning="A minimum of {1} RAM is required to install or update GitLab. Insufficient memory may cause unexpected errors when you run GitLab, so you are recommended to expand the memory of your Synology NAS. <a href=\"{2}\" target=\"_blank\">Learn more</a>."
 additional_memory_required="Insufficient memory"
 
-hostname_label="Domain name"
+hostname_label="Hostname/Domain"
 hostname_desc="The hostname of your synology server, also used in emails ("localhost" or "127.0.0.1" will not work)"
 
 ssh_port_label="SSH port number"
@@ -44,13 +46,7 @@ ssh_port_desc="Please enter the SSH port number."
 http_port_label="HTTP port number"
 http_port_desc="Please enter the HTTP port number."
 
-https_port_label="HTTPS port number"
-https_port_desc="Please enter the HTTPS port number."
-
-PageInstallSetting()
-{
-	domain_value_warning="<br><b>$domain_value_warning</b>"
-
+PageInstallSetting() {
   local page=$(cat << EOF
 {
 	"step_title": "$install_title",
@@ -61,7 +57,7 @@ PageInstallSetting()
     "subitems": [{
       "key": "pkgwizard_hostname",
       "desc": "$hostname_label",
-      "defaultValue": "$(hostname)",
+      "defaultValue": "$HOSTNAME",
       "validator": {
         "allowBlank": false
       }
@@ -72,7 +68,7 @@ PageInstallSetting()
     "subitems": [{
       "key": "pkgwizard_ssh_port",
       "desc": "$ssh_port_label",
-      "defaultValue": "30022",
+      "defaultValue": "$GITLAB_SHELL_SSH_PORT",
       "validator": {
         "allowBlank": false,
         "regex": {
@@ -86,21 +82,7 @@ PageInstallSetting()
 		"subitems": [{
 			"key": "pkgwizard_http_port",
 			"desc": "$http_port_label",
-			"defaultValue": "30080",
-			"validator": {
-				"allowBlank": false,
-				"regex": {
-					"expr": "/^[1-9]\\\\d{0,4}$/"
-				}
-			}
-		}]
-	},{
-		"type": "textfield",
-		"desc": "$https_port_desc",
-		"subitems": [{
-			"key": "pkgwizard_https_port",
-			"desc": "$https_port_label",
-			"defaultValue": "30443",
+			"defaultValue": "$GITLAB_HTTP_PORT",
 			"validator": {
 				"allowBlank": false,
 				"regex": {
@@ -115,30 +97,36 @@ EOF
 	echo "$page"
 }
 
-
-PageAdvancedSettings()
-{
-	domain_value_warning="<br><b>$domain_value_warning</b>"
-
+PageAdvancedSettings() {
   local page=$(cat << EOF
 {
 	"step_title": "$install_title",
 	"invalid_next_disabled_v2": true,
+	"activeate": "{
+	  const summary = document.getElementById('pkgwizard-install-summary');
+	  if(summary) {
+	  	  const hostname = document.querySelector('[name=\"pkgwizard_hostname\"]').value;
+    	  const ssh_port = document.querySelector('[name=\"pkgwizard_ssh_port\"]').value;
+    	  const http_port = document.querySelector('[name=\"pkgwizard_http_port\"]').value;
+
+    	  summary.innerHTML =
+    	    'cd /var/packages/$PKG_NAME/scripts && &bsol;<br>' +
+    	    'sudo sh gitlab install $PKG_NAME &bsol;<br>' +
+    	    '--version=$GITLAB_IMAGE_VERSION &bsol;<br>' +
+    	    '--share=$PKG_NAME &bsol;<br>' +
+    	    '--hostname='+hostname+' &bsol;<br>' +
+    	    '--port-ssh='+ssh_port+' &bsol;<br>' +
+    	    '--port-http='+http_port;
+	  }
+	}",
 	"items": [{
     "desc": "
 After the installation is complete, you need to <a href=\"https://kb.synology.com/DSM/tutorial/How_to_login_to_DSM_with_root_permission_via_SSH_Telnet\" target=\"_blank\">login on your synology over ssh</a> and execute this command with root privileges. Please modify the arguments to fit your needs.<br>
 <br>
-You can copy this command with CTRL+C.<br>
-<br>
-<pre style=\"user-select: text; cursor: initial;\">
-cd /var/packages/synology-gitlab-ce/scripts && &bsol;
-sudo sh gitlab install synology-gitlab-ce &bsol;
---version=$GITLAB_IMAGE_VERSION &bsol;
---share=synology-gitlab-ce &bsol;
---port-ssh=30022 &bsol;
---port-http=30080 &bsol;
---port-https=30443
-</pre>
+<div id=\"pkgwizard-install-summary\" style=\"user-select: text; cursor: initial; font-family: monospace;\">
+  <br><br><br><br><br><br><br><br><br><br> <!-- reserve some space -->
+</div><br>
+(to copy this command just mark it and press CTRL+C)<br>
 "
   }]
 }
@@ -181,14 +169,10 @@ cat << EOF
 EOF
 }
 
-
 main()
 {
 	local install_page=""
 	local memory_check_page=""
-	local install_setting_page=""
-
-	DEFAULT_RESTORE=false
 
 	# 2GB and 4GB check
 	if memory_lt 1800; then
@@ -197,18 +181,11 @@ main()
 		memory_check_page="$(PageMemoryCheck true)"
 	fi
 
-
-
 	install_page=$(page_append "$install_page" "$memory_check_page")
 
-
-	if [ "$PACKAGE_TYPE" = "advanced" ]; then
-    install_summary_page="$(PageAdvancedSettings)"
-    install_page=$(page_append "$install_page" "$install_summary_page")
-  else
-    install_setting_page="$(PageInstallSetting)"
-    install_page=$(page_append "$install_page" "$install_setting_page")
-	fi
+  install_title="${install_title} Advanced";
+  install_page=$(page_append "$install_page" "$(PageInstallSetting)")
+  install_page=$(page_append "$install_page" "$(PageAdvancedSettings)")
 
 	echo "[$install_page]" > "${SYNOPKG_TEMP_LOGFILE}"
 	return 0

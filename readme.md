@@ -16,19 +16,7 @@ You can download the SPK file in the [Releases](https://github.com/jboxberger/sy
 - 2 GB RAM ( 4GB RAM is recommended )
 - DSM 6.0 and DSM 7.0 compatible
 
-### Classic:
-very simplistic package, installation and basic configuration over DSM, no ssh or root privileges 
-required. But this comes with a tradeoff, container configuration (ports,volumes,etc.) after the installation is not 
-possible. This is because of the DSM no root privilege policy. However the settings can be changed but only by uninstalling
-and reinstalling the package again. During uninstallation of this package all data will be deleted by DSM. Please do not 
-forget to backup before. Upgrade to Advanced is possible, but be careful and backup, backup, backup!
-
-<span style="color:red">WARNING: </span> All gitlab data will be deleted on uninstall! Backup berfore uninstalling!
-
-![Classic installer image](images/gitlab-ce-classic-1.png "Classic installer")
-
-### Advanced: 
-this approach bypass the root privileges limitation of the DSM by running the setup over ssh. The final container 
+This package bypass the root privileges limitation of the DSM by running the setup over ssh. The final container 
 runs exactly with the same privileges and setup as the classic non-root approach but you need to execute the installer 
 as root to get the setup done. This is a more flexible variant because this way you get the full access to the container
 settings and an update simply exports you current container configuration and imports it again with a modified GitLab image version.
@@ -48,21 +36,20 @@ different container/versions and different data shares. You can test your upgrad
 ![Advanced multiple instances](images/gitlab-ce-advanced-2.png "Advanced multiple instances")
 
 ### Overview Advanced vs Classic
-| Feature                                                     | Advanced | Classic |
-|-------------------------------------------------------------|:--------:|:-------:|
-| DSM only install                                            | &cross;  | &check; |
-| requires ssh for install                                    | &check;  | &cross; |
-| requires root privileges                                    | &check;  | &cross; |
-| gitlab can be upgraded                                      | &check;  | &check; |
-| gitlab can be downgraded                                    | &check;  | &cross; |
-| multiple parallel gitlab instances                          | &check;  | &cross; |
-| start/stop over Synology Package Manager                    | &cross;  | &check; |
-| start/stop over Synology Docker app                         | &check;  | &cross; |
-| exposed gitlab configuration and data                       | &check;  | &check; |
-| container settings accessible                               | &check;  | &cross; |
-| access to container environment variables                   | &check;  | &cross; |
-| keeps container settings (ports, volumes, links) on updates | &check;  | &cross; |
-| GitLab files (data, config) remains on package uninstall    | &check;  | &cross; |
+| Features                                                    |         |
+|-------------------------------------------------------------|:-------:|
+| requires ssh for install                                    | &check; |
+| requires root privileges                                    | &check; |
+| gitlab can be upgraded                                      | &check; |
+| gitlab can be downgraded                                    | &check; |
+| multiple parallel gitlab instances                          | &check; |
+| start/stop over Synology Package Manager                    | &cross; |
+| start/stop over Synology Docker app                         | &check; |
+| exposed gitlab configuration and data                       | &check; |
+| container settings accessible                               | &check; |
+| access to container environment variables                   | &check; |
+| keeps container settings (ports, volumes, links) on updates | &check; |
+| GitLab files (data, config) remains on package uninstall    | &check; |
 
 ### Build instructions
 Clone this repository and execute the build.sh shell script within your terminal 
@@ -74,10 +61,9 @@ Except "jq" there are no special packages/binaries required.
 #   --version - GitLab CE version e.g. 13.4.3-ce.0, 
 #               when no version given, a selection list of the latest
 #               available versions is shown
-#   --type    - package type (classic|advanced) - default: classic
-#   --dsm     - target DSM version (6|7) - default: 7
+#   --dsm     - target DSM version (6.0-6.2|7.0-7.2) - default: 7.1"
 
-./build.sh --version=13.4.3-ce.0 --dsm=7 --type=classic
+./build.sh --version=13.4.3-ce.0 --dsm=7.1
 ```
 
 ### GitLab Upgrade Path
@@ -90,21 +76,20 @@ consume over 4GB RAM, the update should be complete.
 see: https://gitlab-com.gitlab.io/support/toolbox/upgrade-path/?edition=ce
 
 
-
-### Install/Update Classic Instance
+### Install GitLab Instance
 Download the desired SPK Version and install it. If you have a previous version of Gitlab installed, just install the 
-new SPK over the existing Gitlab installation. This will automatically update the existing installation.  
+new SPK over the existing Gitlab installation. This will not update your gitlab, just the tooling scripts. After you 
+installed the SPK you need to run this command:
 
-### Install Advanced Instance
 ```bash
 # Location: /var/packages/synology-gitlab-ce/scripts
-# Syntax: gitlab <action> <container> [options]
+# Syntax: gitlab install <container> [options]
 # arguments:
-#   action       - install or update
 #   container    - container name
 # options:
 #   --version    - GitLab CE version e.g. 13.4.3-ce.0
 #   --share      - destination folder which will contain shared gitlab files
+#   --hostname   - the URL/Hostname of your synology
 #   --port-ssh   - ssh host port
 #   --port-http  - http host port
 #   --port-https - https host port
@@ -118,8 +103,15 @@ sudo sh gitlab install synology-gitlab-ce \
 --port-https=30443
 ```
 
-### Update Advanced Instance
+### Update GitLab Instance
 ```bash
+# Location: /var/packages/synology-gitlab-ce/scripts
+# Syntax: gitlab update <container> [options]
+# arguments:
+#   container    - container name
+# options:
+#   --version    - GitLab CE version e.g. 13.4.3-ce.0
+
 cd /var/packages/synology-gitlab-ce/scripts && \
 sudo sh gitlab update synology-gitlab-ce --version=13.4.5-ce.0
 ```

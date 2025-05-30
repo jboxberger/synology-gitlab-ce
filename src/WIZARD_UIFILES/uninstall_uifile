@@ -1,0 +1,6 @@
+[{
+	"step_title": "Remove GitLab Package",
+	"items": [{
+    "desc": "Your are about to uninstall this GitLab helper package. All your Docker container and data stays untouched, you have to remove it manually."
+	}]
+}]
