@@ -239,7 +239,7 @@ echo $(jq --arg image "$GITLAB_IMAGE_NAME:$GITLAB_VERSION_TARGET" '.image = $ima
 echo $(jq --arg name "$GITLAB_CONTAINER_NAME" '.name = $name' $GITLAB_CONTAINER_CONFIG) > $GITLAB_CONTAINER_CONFIG
 
 # new docker container cmd from "17.10.0"
-if [ $(version "$version") -ge $(version "17.10.0") ]; then
+if [ $(version "$GITLAB_VERSION_TARGET") -ge $(version "17.10.0") ]; then
   echo $(jq --arg cmd "/assets/init-container" '.cmd = $cmd' $GITLAB_CONTAINER_CONFIG) > $GITLAB_CONTAINER_CONFIG
 fi
 
