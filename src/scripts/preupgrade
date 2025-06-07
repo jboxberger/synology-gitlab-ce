@@ -5,4 +5,9 @@
 ### Actions before package upgraded.
 ### ex. backup user settings for package upgrade.
 
+if [ -f "$SYNOPKG_PKGDEST/ui/config" ]; then
+  cp -f "$SYNOPKG_PKGDEST/ui/config" "$SYNOPKG_TEMP_UPGRADE_FOLDER/ui.config"
+fi
+
+
 exit 0
