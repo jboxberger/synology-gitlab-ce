@@ -250,10 +250,10 @@ gitlab-runner register  --url http://<external_url>:<external_port>  --token <to
 ```
 
 ### Docker Container Bootlooping
-When you data gets corrupted during migrations, the container starts boot-looping and you can't enter it to fix the issue.
+When you data gets corrupted during migrations, the container starts boot-looping, and you can't enter it to fix the issue.
 For that issue we start a new container without the default gitlab-ce start script and boot gitlab manually. When you run 
-int the error the container will still run and you can fix your data issue. Befor running the container from cli, please
-stop the boot-looping container
+into the error, the container will still run, and you can fix your data issue. Before running the container from cli, please
+stop the boot-looping container.
 ```bash
 # 1) run container from command line
 sudo docker run -it --rm \
