@@ -249,6 +249,30 @@ docker exec -it <gitlab-runner-name> bash
 gitlab-runner register  --url http://<external_url>:<external_port>  --token <token>
 ```
 
+### Docker Container Bootlooping
+When you data gets corrupted during migrations, the container starts boot-looping and you can't enter it to fix the issue.
+For that issue we start a new container without the default gitlab-ce start script and boot gitlab manually. When you run 
+int the error the container will still run and you can fix your data issue. Befor running the container from cli, please
+stop the boot-looping container
+```bash
+# 1) run container from command line
+sudo docker run -it --rm \
+  --name synology-gitlab-ce-debug \
+  -p 90022:90022 \ 
+  -p 90080:90080 \
+  -v /volume1/docker/<gitlab-share-folder>/data:/var/opt/gitlab \
+  -v /volume1/docker/<gitlab-share-folder>/logs:/var/log/gitlab \
+  -v /volume1/docker/<gitlab-share-folder>/config:/etc/gitlab \
+  gitlab/gitlab-ce:<gitlab-version>-ce.0 \
+  bash
+
+# 2) execute the GitLab start script
+# docker container before "17.10.0"
+./assets/wrapper
+
+# docker container from "17.10.0"
+./assets/init-container
+```
 
 ### Migration from [synology-gitlab](https://github.com/jboxberger/synology-gitlab) package
 Migration can only be done within the same GitLab version. Its is basically a backup from synology-gitlab package and restore to
