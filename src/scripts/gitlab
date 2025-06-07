@@ -313,6 +313,9 @@ if [ -z "$CONTAINER_ID" ]; then
       echo "password: $GITLAB_ROOT_PASSWORD_DEFAULT"
       echo
       printf  "${RED}WARNING!${NC} please change the root password after first login!\n"
+
+      # create link to DSM
+      ./gitlab-link add "$GITLAB_CONTAINER_NAME" --quiet --title="Gitlab CE" --port="$GITLAB_HTTP_PORT"
     fi
   fi
 fi
