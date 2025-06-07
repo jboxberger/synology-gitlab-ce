@@ -26,8 +26,8 @@ PageInstallSummary() {
 	"activeate": "",
 	"items": [{
     "key": "summary",
-    "desc": "This update just updates your GitLab helper package files. Your GitLab environment stays untouched.
-    You have to run the following command to update your GitLab environment ather this update wizzard is completed.<br>
+    "desc": "This update just updates your GitLab toolkit files. Your GitLab environment stays untouched.
+    You have to run the following command to update your GitLab environment after this update wizzard is completed.<br>
     <br>
     <div style=\"user-select: text; cursor: initial; font-family: monospace;\">
     cd /var/packages/$PKG_NAME/scripts && &bsol;<br>
