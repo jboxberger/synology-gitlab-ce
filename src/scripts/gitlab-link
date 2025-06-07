@@ -1,0 +1,217 @@
+#!/bin/sh
+# include common
+. "$(dirname $0)"/common
+
+###########################################################
+# FUNCTIONS
+###########################################################
+help()
+{
+   # Display Help
+   echo "Syntax: gitlab-link list|add|set|remove name [options]"
+   echo "  list         - list all links"
+   echo "  add          - adds a new link"
+   echo "  set          - modifies existing link"
+   echo "  remove       - removes a link"
+   echo "options:"
+   echo "  --title      - add a title which is shown in DSM - default: $GITLAB_TITLE_DEFAULT"
+   echo "  --protocol   - protocol http|https - default: $GITLAB_PROTOCOL_DEFAULT"
+   echo "  --port       - port - default: $GITLAB_PORT_DEFAULT"
+   echo
+   echo "Example: gitlab-link add synology-gitlab-ce --title=\"$GITLAB_TITLE_DEFAULT\" --protocol=$GITLAB_PROTOCOL_DEFAULT --port=$GITLAB_PORT_DEFAULT"
+   exit 0
+}
+
+get_link_template()
+{
+  local protocol=$GITLAB_PROTOCOL_DEFAULT
+  local port=$GITLAB_PORT_DEFAULT
+  local title=$GITLAB_TITLE_DEFAULT
+
+  if [ ! -z "$GITLAB_PROTOCOL" ]; then
+    protocol="$GITLAB_PROTOCOL"
+  fi
+
+  if [ ! -z "$GITLAB_PORT" ]; then
+    port="$GITLAB_PORT"
+  fi
+
+  if [ ! -z "$GITLAB_TITLE" ]; then
+    title="$GITLAB_TITLE"
+  fi
+
+cat <<EOF
+  {
+    "SYNO.SDS.$NAME": {
+      "allUsers": true,
+      "desc": "$title",
+      "icon": "images/GitLab_{0}.png",
+      "port": "$port",
+      "protocol": "$protocol",
+      "texts": "texts",
+      "title": "$title",
+      "type": "url",
+      "url": "/"
+    }
+  }
+EOF
+}
+
+###########################################################
+# DEFAULT VARIABLES
+###########################################################
+# defaults
+GITLAB_PROTOCOL_DEFAULT="http"
+GITLAB_PORT_DEFAULT="30080"
+GITLAB_TITLE_DEFAULT="GitLab CE"
+
+# interactive
+GITLAB_PROTOCOL=""
+GITLAB_PORT=""
+GITLAB_TITLE=""
+
+# system
+PACKAGE_CONFIG_FILE="$PKG_PATH/target/ui/config"
+DO_PKG_RESTART=0
+
+###########################################################
+# PARAMETER HANDLING
+###########################################################
+PARAMS=""
+for i in "$@"
+do
+    case ${i} in
+      --protocol=*)
+          GITLAB_PROTOCOL="${i#*=}"
+      ;;
+      --port=*)
+          GITLAB_PORT="${i#*=}"
+      ;;
+      --title=*)
+          GITLAB_TITLE="${i#*=}"
+      ;;
+      -h|--help)
+          help
+      ;;
+      *) # unknown option
+          PARAMS="$PARAMS \"$1\""
+      ;;
+    esac
+    shift
+done
+# set positional arguments in their proper place
+eval set -- "$PARAMS"
+
+###########################################################
+# COMMAND HANDLING
+###########################################################
+COMMAND="$1"
+NAME="$2"
+
+if [ "$COMMAND" == "add" ] || [ "$COMMAND" == "set" ] || [ "$COMMAND" == "remove" ]; then
+  if [ -z "$NAME" ]; then
+    echo "error name is invalid!"
+    echo ""
+    help
+  fi
+
+  if [ "$(expr "$NAME" : '^[-0-9a-zA-Z]*$')" -eq 0 ]; then
+      echo "error, name '$NAME' is invalid"
+      echo ""
+      help
+  fi
+fi
+
+if [ "$COMMAND" == "add" ]; then
+  if [ "$(expr "$GITLAB_PROTOCOL" : '^http|https$')" -gt 0 ]; then
+    echo "error protocol is invalid!"
+    echo ""
+    help
+  fi
+  validate_port $GITLAB_PORT
+fi
+
+###########################################################
+# PROCESSING
+###########################################################
+if [ "$USER" != "root" ]; then
+  echo "You must run this script as ROOT!"
+  exit
+fi
+check_dependencies "synowebapi jq"
+
+case "$COMMAND" in
+
+  "list")
+    cat "$PACKAGE_CONFIG_FILE" | jq '.[".url"] | keys[]' | tr -d '"' | tr -d 'SYNO.SDS.'
+    ;;
+
+  "add")
+    name_exists=$(./gitlab-link list | grep -x "$NAME")
+    if [ ! -z "$name_exists" ]; then
+      echo "name '$NAME' already exists, you need to remove it before you can add it."
+      exit 1
+    fi
+    new_link="$(get_link_template)"
+    #echo $(jq --argjson p ''"$new_link"'' '.[".url"] += $p' "$PACKAGE_CONFIG_FILE") > "$PACKAGE_CONFIG_FILE"
+    cat "$PACKAGE_CONFIG_FILE" | jq --argjson p ''"$new_link"'' '.[".url"] += $p' > "${PACKAGE_CONFIG_FILE}.tmp" && \
+    mv "${PACKAGE_CONFIG_FILE}.tmp" "${PACKAGE_CONFIG_FILE}"
+
+    DO_PKG_RESTART=1
+    ;;
+
+  "set")
+    name_exists=$(./gitlab-link list | grep -x "$NAME")
+    if [ -z "$name_exists" ]; then
+      echo "name '$NAME' does not exists, cant update"
+      exit 1
+    fi
+
+    if [ ! -z "$GITLAB_TITLE" ]; then
+      cat "$PACKAGE_CONFIG_FILE" | jq --arg title "$GITLAB_TITLE" '.[".url"]["SYNO.SDS.'$NAME'"].desc = $title' > "${PACKAGE_CONFIG_FILE}.tmp" && \
+      mv "${PACKAGE_CONFIG_FILE}.tmp" "${PACKAGE_CONFIG_FILE}"
+      cat "$PACKAGE_CONFIG_FILE" | jq --arg title "$GITLAB_TITLE" '.[".url"]["SYNO.SDS.'$NAME'"].title = $title' > "${PACKAGE_CONFIG_FILE}.tmp" && \
+      mv "${PACKAGE_CONFIG_FILE}.tmp" "${PACKAGE_CONFIG_FILE}"
+    fi
+
+    if [ ! -z "$GITLAB_PORT" ]; then
+      cat "$PACKAGE_CONFIG_FILE" | jq --arg port "$GITLAB_PORT" '.[".url"]["SYNO.SDS.'$NAME'"].port = $port' > "${PACKAGE_CONFIG_FILE}.tmp" && \
+      mv "${PACKAGE_CONFIG_FILE}.tmp" "${PACKAGE_CONFIG_FILE}"
+    fi
+
+    if [ ! -z "$GITLAB_PROTOCOL" ]; then
+      cat "$PACKAGE_CONFIG_FILE" | jq --arg protocol "$GITLAB_PROTOCOL" '.[".url"]["SYNO.SDS.'$NAME'"].protocol = $protocol' > "${PACKAGE_CONFIG_FILE}.tmp" && \
+      mv "${PACKAGE_CONFIG_FILE}.tmp" "${PACKAGE_CONFIG_FILE}"
+    fi
+
+    DO_PKG_RESTART=1
+    ;;
+
+  "remove")
+    name_exists=$(./gitlab-link list | grep -x "$NAME")
+    if [ -z "$name_exists" ]; then
+      echo "name '$NAME' does not exists, cant remove"
+      exit 1
+    fi
+    #echo $(jq 'del(.[".url"]["SYNO.SDS.'$NAME'"])' "$PACKAGE_CONFIG_FILE") > "$PACKAGE_CONFIG_FILE"
+    cat "$PACKAGE_CONFIG_FILE" | jq 'del(.[".url"]["SYNO.SDS.'$NAME'"])' > "${PACKAGE_CONFIG_FILE}.tmp" && \
+    mv "${PACKAGE_CONFIG_FILE}.tmp" "${PACKAGE_CONFIG_FILE}"
+
+    DO_PKG_RESTART=1
+    ;;
+
+  *)
+    help
+    ;;
+esac
+
+if [ $DO_PKG_RESTART -eq 1 ]; then
+  # restart package for all changes to take effect
+  echo "restarting package"
+  stop_response=$(synowebapi --exec api=SYNO.Core.Package.Control version=1 method=stop id="$PKG_NAME" 2> /dev/null)
+  start_response=$(synowebapi --exec api=SYNO.Core.Package.Control version=1 method=start id="$PKG_NAME" 2> /dev/null)
+
+  echo "done! please reload your browser page to see the effect"
+fi
+
+exit 1
