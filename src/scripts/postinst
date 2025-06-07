@@ -1,11 +1,3 @@
 #!/bin/sh
-. "$(dirname $0)"/common
-
-if [ ! -z "$pkgwizard_http_port" ]; then
-    # new install
-    if [ -f "$SYNOPKG_PKGDEST/ui/config" ]; then
-        sed -i -e "s|__PORT__|$pkgwizard_http_port|g" "$SYNOPKG_PKGDEST/ui/config"
-    fi
-fi
 
 exit 0
