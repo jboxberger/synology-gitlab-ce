@@ -1,0 +1,180 @@
+#!/bin/sh
+. "$(dirname $0)"/common
+
+###########################################################
+# FUNCTIONS
+###########################################################
+help()
+{
+    # Display Help
+    echo "Syntax: gitlab-inactivity-shutdown <container> [options]"
+    echo "arguments:"
+    echo "  container    - container name"
+    echo "options:"
+    echo "  --seconds         - inactivity seconds - default: $GITLAB_INACTIVITY_SECONDS_DEFAULT"
+    echo "  --shutdown-docker - also shutdown the docker/container service"
+    echo
+    echo "Example: gitlab-inactivity-shutdown synology-gitlab-ce --seconds=$GITLAB_INACTIVITY_SECONDS_DEFAULT --shutdown-docker"
+    exit 0
+}
+
+log() {
+    local message="$1"
+    echo "[$(date +"%Y-%m-%d %H:%M:%S")] $message" >> "$LOG_FILE"
+    if [ $VERBOSE -eq 1 ]; then
+      echo "[$(date +"%Y-%m-%d %H:%M:%S")] $message"
+    fi
+}
+
+###########################################################
+# DEFAULT VARIABLES
+###########################################################
+# defaults
+PKG_NAME="synology-gitlab-ce"
+TMP_DIR="/var/packages/$PKG_NAME/tmp"
+LOG_FILE="/var/log/packages/$PKG_NAME-inactivity-shutdown.log"
+GITLAB_INACTIVITY_SECONDS_DEFAULT=3600
+SHUTDOWN_DOCKER_DEFAULT=0
+
+CONTAINER_SERVICE="Docker"
+if [ -d "/var/packages/ContainerManager" ]; then
+  CONTAINER_SERVICE="ContainerManager"
+fi
+
+# interactive
+GITLAB_INACTIVITY_SECONDS=0
+SHUTDOWN_DOCKER=0
+GITLAB_CONTAINER_NAME=""
+VERBOSE=0
+
+###########################################################
+# PARAMETER HANDLING
+###########################################################
+PARAMS=""
+for i in "$@"
+do
+    case ${i} in
+      --seconds=*)
+          GITLAB_INACTIVITY_SECONDS="${i#*=}"
+      ;;
+      --shutdown-docker)
+          SHUTDOWN_DOCKER=1
+      ;;
+      -v|--verboxe)
+          VERBOSE=1
+      ;;
+      -h|--help)
+          help
+      ;;
+      *) # unknown option
+          PARAMS="$PARAMS \"$1\""
+      ;;
+    esac
+    shift
+done
+# set positional arguments in their proper place
+eval set -- "$PARAMS"
+
+
+GITLAB_CONTAINER_NAME="$1"
+if [ -z "$GITLAB_CONTAINER_NAME" ] ; then
+  echo "you need to provide a container name as argument"
+  help
+fi
+
+if [ -z "$GITLAB_INACTIVITY_SECONDS" ] || [ $GITLAB_INACTIVITY_SECONDS -le 0 ]; then
+  GITLAB_INACTIVITY_SECONDS=$GITLAB_INACTIVITY_SECONDS_DEFAULT
+fi
+
+###########################################################
+# PROCESSING
+###########################################################
+if [ "$USER" != "root" ]; then
+  echo "You must run this script as ROOT!"
+  exit
+fi
+check_dependencies "jq docker synowebapi"
+
+# check container is running
+CONTAINER_ID=$(docker ps -q -f name=^"$GITLAB_CONTAINER_NAME"$)
+if [ -z "$CONTAINER_ID" ]; then
+    log "container $GITLAB_CONTAINER_NAME is not running, nothing to do"
+    exit 0
+fi
+
+tmp_file="$TMP_DIR/$GITLAB_CONTAINER_NAME"
+last_log="$TMP_DIR/$GITLAB_CONTAINER_NAME.log"
+prev_log="$TMP_DIR/$GITLAB_CONTAINER_NAME.log.1.gz"
+
+# prepare file
+docker cp $GITLAB_CONTAINER_NAME:/var/log/gitlab/gitlab-rails/production_json.log "$last_log"
+docker cp $GITLAB_CONTAINER_NAME:/var/log/gitlab/gitlab-rails/production_json.log.1.gz "$prev_log" 2> /dev/null
+
+if [ -f "$prev_log" ]; then
+  zcat "$prev_log" >  "$tmp_file"
+  cat  "$last_log" >> "$tmp_file"
+else
+  cat "$last_log"  >  "$tmp_file"
+fi
+
+last_activity=$(cat "$tmp_file" | tail -n+2 | jq '. | select(.username!=null) .time' | tail -1 | tr -d '"')
+
+if [ -z "$last_activity" ]; then
+  # if no user web interaction at all, use last logfile date as reference fpr last activity
+  log "using logfile date fallback"
+  file_timestamp=$(stat -c '%Y' "$prev_log" | tr -d '\r')
+  last_activity=$(date '+%F %T' -d "@$file_timestamp")
+fi
+
+log "last activity $last_activity"
+
+if ! [ -z "$last_activity" ]; then
+  last_activity_unix=$(date -d "$last_activity" +%s)
+  current_unix=$(date +%s)
+
+  diffSeconds="$(($current_unix-$last_activity_unix))"
+
+  log $last_activity_unix $current_unix $diffSeconds
+
+  if [ $diffSeconds -gt $GITLAB_INACTIVITY_SECONDS ]; then
+    log "inactivity threshold reached, shutting down"
+
+    if [ $SHUTDOWN_DOCKER -eq 1 ]; then
+
+      log "stopping $PKG_NAME package"
+      stop_response=$(synowebapi --exec api=SYNO.Core.Package.Control id="$PKG_NAME" method=stop version=1 2> /dev/null)
+      stop_ok=$(echo "$stop_response" | jq -r ".success")
+      if [ "$stop_ok" = "false" ]; then
+            log "failed to stop $PKG_NAME package"
+            log "$stop_response"
+      fi
+
+      log "stopping $CONTAINER_SERVICE service"
+      stop_response=$(synowebapi --exec api=SYNO.Core.Package.Control id="$CONTAINER_SERVICE" method=stop version=1 2> /dev/null)
+      stop_ok=$(echo "$stop_response" | jq -r ".success")
+      if [ "$stop_ok" = "false" ]; then
+            log "failed to stop $CONTAINER_SERVICE service"
+            log "$stop_response"
+      fi
+    else
+      log "stopping $GITLAB_CONTAINER_NAME container"
+      stop_response=$(synowebapi --exec api=SYNO.Docker.Container version=1 method=stop name="$GITLAB_CONTAINER_NAME" 2> /dev/null)
+      stop_ok=$(echo "$stop_response" | jq -r ".success")
+      if [ "$stop_ok" = "false" ]; then
+            log "failed to stop container $GITLAB_CONTAINER_NAME"
+            log "$stop_response"
+      fi
+    fi
+  else
+    log "do nothing"
+  fi
+else
+  log "nothing to do, $GITLAB_CONTAINER_NAME not runnung"
+fi
+
+rm -f "$tmp_file" "$last_log"
+if [ -f "$prev_log" ]; then
+  rm -f "$prev_log"
+fi
+
+exit 0
