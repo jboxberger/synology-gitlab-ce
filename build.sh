@@ -99,6 +99,8 @@ help()
 ###########################################################
 # DEFAULT VARIABLES
 ###########################################################
+TOOLKIT_VERSION=0001
+
 DSM_VERSION="7.1"
 GITLAB_IMAGE_NAME="gitlab/gitlab-ce"
 GITLAB_IMAGE_VERSION=""
@@ -176,7 +178,7 @@ EXTRACTSIZE=$(du -k --block-size=1KB "$DIRECTORY_TMP/package.tgz" | cut -f1)
 GITLAB_IMAGE_VERSION_SHORT=$(echo "$GITLAB_IMAGE_VERSION" | cut -f1 -d-)
 
 # UPDATE INFO FILE
-sed -i -e "/^version=/s/=.*/=\"$GITLAB_IMAGE_VERSION_SHORT\"/" "$DIRECTORY_TMP/INFO"
+sed -i -e "/^version=/s/=.*/=\"$GITLAB_IMAGE_VERSION_SHORT-$TOOLKIT_VERSION\"/" "$DIRECTORY_TMP/INFO"
 sed -i -e "/^os_min_ver=/s/=.*/=\"$DSM_VERSION-00000\"/" "$DIRECTORY_TMP/INFO"
 sed -i -e "/^extractsize=/s/=.*/=\"$EXTRACTSIZE\"/" "$DIRECTORY_TMP/INFO"
 
@@ -185,7 +187,7 @@ if [ $(compare_versions "$DSM_VERSION" "ge" "7.2") ]; then
 fi
 
 # CREATE FILE
-OUTPUT_FILE_NAME="synology-gitlab-ce-$GITLAB_IMAGE_VERSION_SHORT-dsm$DSM_VERSION.spk"
+OUTPUT_FILE_NAME="synology-gitlab-ce-$GITLAB_IMAGE_VERSION_SHORT-$TOOLKIT_VERSION-dsm$DSM_VERSION.spk"
 cd "$DIRECTORY_TMP/" && tar --format=gnu -cf "../$DIRECTORY_SPK/$OUTPUT_FILE_NAME" * && cd ../
 
 rm -rf "$DIRECTORY_TMP"
