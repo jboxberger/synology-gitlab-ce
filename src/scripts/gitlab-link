@@ -135,6 +135,9 @@ if [ "$COMMAND" == "add" ]; then
     echo ""
     help
   fi
+fi
+
+if [ ! -z "$GITLAB_PORT" ]; then
   validate_port $GITLAB_PORT
 fi
 

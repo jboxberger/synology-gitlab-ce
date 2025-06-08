@@ -85,6 +85,16 @@ validate_port() {
       exit 1
   fi
 
+  if [ "$(expr "$port" + 0)" -le 0 ]; then
+      echo "error, port 0 or lower is not allowed"
+      exit 1
+  fi
+
+  if [ "$(expr "$port" + 0)" -gt 65535 ]; then
+      echo "error, max allowed port 65535"
+      exit 1
+  fi
+
   if [ "$check_use" = "1" ]; then
     in_use=$(port_in_use "$port")
     if [ "$in_use" = "1" ]; then
