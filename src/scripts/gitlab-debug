@@ -1,0 +1,147 @@
+#!/bin/sh
+. "$(dirname $0)"/common
+
+###########################################################
+# FUNCTIONS
+###########################################################
+help()
+{
+   # Display Help
+   echo "Syntax: gitlab-debug [options] <container-name>"
+   echo "arguments:"
+   echo "  container-name    - Name of you gitlab container"
+   echo "options:"
+   echo "  -h|--help         - dsiplays help"
+   echo "  -v|--verbose      - dsiplays command"
+   echo ""
+   echo "Example: gitlab-debug synology-gitlab-ce -v"
+   exit 0
+}
+
+###########################################################
+# DEFAULT VARIABLES
+###########################################################
+# defaults
+VERBOSE=0
+
+###########################################################
+# PARAMETER HANDLING
+###########################################################
+PARAMS=""
+for i in "$@"
+do
+    case ${i} in
+      -v|--verbose)
+          VERBOSE=1
+      ;;
+      -h|--help)
+          help
+      ;;
+      *) # unknown option
+          PARAMS="$PARAMS \"$1\""
+      ;;
+    esac
+    shift
+done
+# set positional arguments in their proper place
+eval set -- "$PARAMS"
+
+
+###########################################################
+# PROCESSING
+###########################################################
+if [ "$USER" != "root" ]; then
+  echo "You must run this script as ROOT!"
+  exit
+fi
+check_dependencies "synowebapi jq docker"
+
+###########################################################
+# CHECK CONTAINER
+###########################################################
+
+GITLAB_CONTAINER_NAME="$1"
+if [ -z "$GITLAB_CONTAINER_NAME" ] ; then
+  GITLAB_CONTAINER_NAME="$GITLAB_CONTAINER_NAME_DEFAULT"
+  echo "you need to provide a container name as argument"
+  exit 1
+fi
+
+CONTAINER_CONFIG=$(docker inspect "$GITLAB_CONTAINER_NAME")
+if [ "$CONTAINER_CONFIG" == "[]" ]; then
+  echo "could not find container! $GITLAB_CONTAINER_NAME"
+  exit 1
+fi
+
+###########################################################
+# STOP CONTAINER
+###########################################################
+CONTAINER_ID=$(docker ps -q -f name=^"$GITLAB_CONTAINER_NAME"$)
+if [ ! -z "$CONTAINER_ID" ]; then
+    echo "container $GITLAB_CONTAINER_NAME is running, stopping..."
+    stop_response=$(synowebapi --exec api=SYNO.Docker.Container version=1 method=stop name="$GITLAB_CONTAINER_NAME" 2> /dev/null)
+    stop_ok=$(echo "$stop_response" | jq -r ".success")
+    if [ "$stop_ok" = "false" ]; then
+          echo "failed to stop container, aborting!"
+          echo "$stop_response"
+          exit 1
+    fi
+fi
+
+###########################################################
+# FETCH CONTAINER DATA
+###########################################################
+DOCKER_RUN_CMD="sudo docker run -it --rm --name $GITLAB_CONTAINER_NAME-debug"
+DOCKER_RUN_CMD_PRETTY="sudo docker run -it --rm \ \n  --name $GITLAB_CONTAINER_NAME-debug \ \n"
+
+LOCAL_PORTS=($(docker inspect "$GITLAB_CONTAINER_NAME" | jq -r '.[].HostConfig.PortBindings[][].HostPort'))
+CONTAINER_PORTS=($(docker inspect "$GITLAB_CONTAINER_NAME" | jq -r '.[].HostConfig.PortBindings | keys[]' | tr -d '/tcp'))
+
+i=0
+for local_port in "${LOCAL_PORTS[@]}"
+do
+   DOCKER_RUN_CMD="$DOCKER_RUN_CMD -p $local_port:${CONTAINER_PORTS[$i]}"
+   DOCKER_RUN_CMD_PRETTY="$DOCKER_RUN_CMD_PRETTY  -p $local_port:${CONTAINER_PORTS[$i]} \ \n"
+   #echo "-p $local_port:${CONTAINER_PORTS[$i]}"
+   i=$(expr $i + 1)
+   # or do whatever with individual element of the array
+done
+
+LOCAL_DIRS=($(docker inspect "$GITLAB_CONTAINER_NAME" | jq -r '.[].Mounts[].Source'))
+CONTAINER_DIRS=($(docker inspect "$GITLAB_CONTAINER_NAME" | jq -r '.[].Mounts[].Destination'))
+i=0
+for local_dir in "${LOCAL_DIRS[@]}"
+do
+   DOCKER_RUN_CMD="$DOCKER_RUN_CMD -v $local_dir:${CONTAINER_DIRS[$i]}"
+   DOCKER_RUN_CMD_PRETTY="$DOCKER_RUN_CMD_PRETTY  -v $local_dir:${CONTAINER_DIRS[$i]} \ \n"
+   #echo "-v $local_dir:${CONTAINER_DIRS[$i]}"
+   i=$(expr $i + 1)
+   # or do whatever with individual element of the array
+done
+
+CONTAINER_IMAGE=$(docker inspect "$GITLAB_CONTAINER_NAME" | jq -r '.[].Config.Image')
+CONTAINER_CMD=$(docker inspect "$GITLAB_CONTAINER_NAME" | jq -r '.[].Config.Cmd[]')
+
+DOCKER_RUN_CMD="$DOCKER_RUN_CMD $CONTAINER_IMAGE bash"
+DOCKER_RUN_CMD_PRETTY="$DOCKER_RUN_CMD_PRETTY  $CONTAINER_IMAGE \ \n  bash"
+
+if [ $VERBOSE -eq 1 ]; then
+  echo -e "$DOCKER_RUN_CMD_PRETTY"
+fi
+
+echo "************************************************************************"
+echo "This will start a GitLab container and mount your data/ports. Gitlab    "
+echo "is not booted at this moment and you can look around. To get the GitLab "
+echo "application started you have to execute this command.                   "
+echo "************************************************************************"
+echo "=> .$CONTAINER_CMD"
+echo ""
+read -ep "start container? (y/n): " START_CONTAINER
+if [ "$START_CONTAINER" != "y" ]; then
+  echo "start aborted!"
+  exit 0
+fi
+
+eval "$DOCKER_RUN_CMD"
+
+exit 0
