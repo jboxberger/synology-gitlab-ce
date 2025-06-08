@@ -64,7 +64,7 @@ GITLAB_CONTAINER_NAME="$1"
 if [ -z "$GITLAB_CONTAINER_NAME" ] ; then
   GITLAB_CONTAINER_NAME="$GITLAB_CONTAINER_NAME_DEFAULT"
   echo "you need to provide a container name as argument"
-  exit 1
+  help
 fi
 
 CONTAINER_CONFIG=$(docker inspect "$GITLAB_CONTAINER_NAME")
