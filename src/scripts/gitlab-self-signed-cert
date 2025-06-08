@@ -13,9 +13,9 @@ help()
    echo "  container    - container name"
    echo "options:"
    echo "  --hostname   - gitlab hostname - default: $GITLAB_HOSTNAME_DEFAULT"
-   echo "  --https-port - https port - default: $GITLAB_HTTPS_PORT_DEFAULT"
-   echo
-   echo "Example: gitlab-cert install synology-gitlab-ce --hostname=$GITLAB_HOSTNAME_DEFAULT --https-port=$GITLAB_HTTPS_PORT_DEFAULT"
+   echo "  --port       - https port - default: $GITLAB_HTTPS_PORT_DEFAULT"
+      echo
+   echo "Example: gitlab-cert install synology-gitlab-ce --hostname=$GITLAB_HOSTNAME_DEFAULT --port=$GITLAB_HTTPS_PORT_DEFAULT"
    exit 0
 }
 
@@ -23,6 +23,7 @@ help()
 # DEFAULT VARIABLES
 ###########################################################
 # defaults
+GITLAB_TMP_DIR="$(dirname $0)/templates"
 GITLAB_HOSTNAME_DEFAULT=$(hostname)
 GITLAB_HTTPS_PORT_DEFAULT="80443"
 GITLAB_INTERNAL_SSL_DIR="/etc/gitlab/ssl"
@@ -42,7 +43,7 @@ do
       --hostname=*)
           GITLAB_HOSTNAME="${i#*=}"
       ;;
-      --port-https=*)
+      --port=*)
           GITLAB_HTTPS_PORT="${i#*=}"
       ;;
       -h|--help)
@@ -91,12 +92,9 @@ if [ -z "$GITLAB_HOSTNAME" ]; then
 fi
 
 if [ -z "$GITLAB_HTTPS_PORT" ]; then
-  GITLAB_HTTPS_PORT=$(docker inspect $GITLAB_CONTAINER_NAME | jq -r '.[].HostConfig.PortBindings."443/tcp"[].HostPort')
-  if [ -z "$GITLAB_HTTPS_PORT" ] || [ "$GITLAB_HTTPS_PORT" = "null" ]; then
-    read -ep "gitlab https port? [default: $GITLAB_HTTPS_PORT_DEFAULT]: " GITLAB_HTTPS_PORT
-    if [ -z "$GITLAB_HTTPS_PORT" ]; then
-      GITLAB_HTTPS_PORT="$GITLAB_HTTPS_PORT_DEFAULT"
-    fi
+  read -ep "gitlab https port? [default: $GITLAB_HTTPS_PORT_DEFAULT]: " GITLAB_HTTPS_PORT
+  if [ -z "$GITLAB_HTTPS_PORT" ]; then
+    GITLAB_HTTPS_PORT="$GITLAB_HTTPS_PORT_DEFAULT"
   fi
 fi
 validate_port $GITLAB_HTTPS_PORT
@@ -105,7 +103,7 @@ docker exec "$GITLAB_CONTAINER_NAME" bash -c "mkdir -p $GITLAB_INTERNAL_SSL_DIR"
 docker exec "$GITLAB_CONTAINER_NAME" bash -c "openssl req -x509 -nodes -days 3650 -newkey rsa:2048 -keyout \"$GITLAB_INTERNAL_SSL_DIR/$GITLAB_HOSTNAME.key\" -subj \"/C=DE/ST=Germany/L=Duisburg/O=jboxberger/OU=private/CN=$GITLAB_HOSTNAME\" -out \"$GITLAB_INTERNAL_SSL_DIR/$GITLAB_HOSTNAME.crt\""
 
 docker exec "$GITLAB_CONTAINER_NAME" bash -c "cp --backup=t $GITLAB_INTERNAL_CONFIG $GITLAB_INTERNAL_CONFIG.bak"
-docker exec "$GITLAB_CONTAINER_NAME" bash -c "sed -i \"s|^[#]*\s*external_url.*$|external_url 'https://$GITLAB_HOSTNAME'|\" $GITLAB_INTERNAL_CONFIG"
+docker exec "$GITLAB_CONTAINER_NAME" bash -c "sed -i \"s|^[#]*\s*external_url.*$|external_url 'https://$GITLAB_HOSTNAME:$GITLAB_HTTPS_PORT'|\" $GITLAB_INTERNAL_CONFIG"
 docker exec "$GITLAB_CONTAINER_NAME" bash -c "sed -i \"s|^[#]*\s*letsencrypt\['enable'\]\s*=\s.*$|letsencrypt\['enable'\] = false|\" $GITLAB_INTERNAL_CONFIG"
 docker exec "$GITLAB_CONTAINER_NAME" bash -c "sed -i \"s|^[#]*\s*nginx\['ssl_certificate'\]\s*=\s.*$|nginx\['ssl_certificate'\] = \\\"$GITLAB_INTERNAL_SSL_DIR/$GITLAB_HOSTNAME.crt\\\"|\" $GITLAB_INTERNAL_CONFIG"
 docker exec "$GITLAB_CONTAINER_NAME" bash -c "sed -i \"s|^[#]*\s*nginx\['ssl_certificate_key'\]\s*=\s.*$|nginx\['ssl_certificate_key'\] = \\\"$GITLAB_INTERNAL_SSL_DIR/$GITLAB_HOSTNAME.key\\\"|\" $GITLAB_INTERNAL_CONFIG"
@@ -113,14 +111,64 @@ docker exec "$GITLAB_CONTAINER_NAME" bash -c "sed -i \"s|^[#]*\s*nginx\['ssl_cer
 docker exec "$GITLAB_CONTAINER_NAME" bash -c "gitlab-ctl reconfigure"
 docker exec "$GITLAB_CONTAINER_NAME" bash -c "gitlab-ctl restart"
 
-# update port in link and restart package to take effect
-echo $(jq --arg port "$GITLAB_HTTPS_PORT" '.[][].port = $port' "$PKG_PATH/target/ui/config") > "$PKG_PATH/target/ui/config"
-echo $(jq '.[][].protocol = "https"' "$PKG_PATH/target/ui/config") > "$PKG_PATH/target/ui/config"
+# add port to container if not mapped
+CONTAINER_PORT_EXISTS=$(docker inspect "$GITLAB_CONTAINER_NAME" | jq -r '.[].HostConfig.PortBindings."'$GITLAB_HTTPS_PORT'/tcp"')
+if [ "$CONTAINER_PORT_EXISTS" == "null" ]; then
+  GITLAB_CONTAINER_CONFIG="$GITLAB_TMP_DIR/$GITLAB_CONTAINER_NAME.cfg.json"
 
-# restart package for all changes to take effect
-echo "restarting package"
-stop_response=$(synowebapi --exec api=SYNO.Core.Package.Control version=1 method=stop id="$PKG_NAME" 2> /dev/null)
-start_response=$(synowebapi --exec api=SYNO.Core.Package.Control version=1 method=start id="$PKG_NAME" 2> /dev/null)
+  # export config
+  synowebapi --exec api=SYNO.Docker.Container.Profile version=1 method=export name="$GITLAB_CONTAINER_NAME" 2> /dev/null | tail -n +4 | jq --slurp '.[0]' > "$GITLAB_CONTAINER_CONFIG" 2> /dev/null
+
+  if [ -f "$GITLAB_CONTAINER_CONFIG" ]; then
+    cat "$GITLAB_CONTAINER_CONFIG" | jq --argjson port '[{"container_port": '$GITLAB_HTTPS_PORT', "host_port": '$GITLAB_HTTPS_PORT', "type": "tcp"}]' '.port_bindings += $port'  > "${GITLAB_CONTAINER_CONFIG}.tmp" && \
+    mv "${GITLAB_CONTAINER_CONFIG}.tmp" "${GITLAB_CONTAINER_CONFIG}"
+  else
+    echo "failed to export configuration"
+    exit 1
+  fi
+
+  echo "stopping container $GITLAB_CONTAINER_NAME"
+  stop_response=$(synowebapi --exec api=SYNO.Docker.Container version=1 method=stop name="$GITLAB_CONTAINER_NAME" 2> /dev/null)
+  stop_ok=$(echo "$stop_response" | jq -r ".success")
+  if [ "$stop_ok" = "false" ]; then
+        echo "failed to stop container, aborting!"
+        echo "$stop_response"
+        exit 1
+  fi
+
+  echo "deleteing container $GITLAB_CONTAINER_NAME"
+  delete_response=$(synowebapi --exec api=SYNO.Docker.Container version=1 method=delete name="$GITLAB_CONTAINER_NAME" force=true preserve_profile=false 2> /dev/null)
+  delete_ok=$(echo "$delete_response" | jq -r ".success")
+  if [ "$delete_ok" = "false" ]; then
+    echo "failed to delete container, aborting!"
+    echo "$delete_response"
+    exit 1
+  fi
+
+  echo "creating container $GITLAB_CONTAINER_NAME"
+  create_response=$(synowebapi --exec api=SYNO.Docker.Container version=1 method=create is_run_instantly=false profile="$(cat $GITLAB_CONTAINER_CONFIG)" 2> /dev/null)
+  create_ok=$(echo "$create_response" | jq -r ".success")
+  if [ "$create_ok" = "false" ]; then
+    echo "container create failed!"
+    echo "$create_response"
+    exit 1
+  fi
+
+  echo "starting container $GITLAB_CONTAINER_NAME"
+  start_response=$(synowebapi --exec api=SYNO.Docker.Container version=1 method=start name="$GITLAB_CONTAINER_NAME" 2> /dev/null)
+  start_ok=$(echo "$start_response" | jq -r ".success")
+  if [ "$start_ok" = "false" ]; then
+    echo "container failed to start!"
+    echo "$start_response"
+    exit 1
+  fi
+
+  # remove tmp config
+  rm -f "$GITLAB_CONTAINER_CONFIG"
+fi
+
+# update port in link and restart package to take effect
+./gitlab-link set "$GITLAB_CONTAINER_NAME" --protocol="https" --port="$GITLAB_HTTPS_PORT"
 
 echo "done!"
 exit 0
