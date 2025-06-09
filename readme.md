@@ -1,9 +1,18 @@
 ## synology-gitlab-ce
 
-This is a docker based GitLab CE package for Synology NAS server using the original [gitlab/gitlab-ce](https://hub.docker.com/r/gitlab/gitlab-ce/) image from hub.docker.com. 
-The goal of this project is to lower the entry barrier for new GitLab users and give experienced users a little comfort in maintaining their GitLab installation.     
+This is a docker based GitLab CE toolkit package for Synology NAS server using the original [gitlab/gitlab-ce](https://hub.docker.com/r/gitlab/gitlab-ce/) image from hub.docker.com. 
+The goal of this project is to lower the entry barrier for new GitLab users and give experienced users a little comfort in maintaining their GitLab installation.
 
-Everything this package does, can be also done manually over the Synology Docker NAS Application.    
+### Features
+- easy GitLab self update (no wait for maintainer)
+- auto backup on update
+- multiple parallel GitLab instances possible (debugging, migration tests)
+- GitLab debug helper when migrations failed
+- Self-Signed SSL Cert helper
+- Synology GitLab shutdown on inactivity helper
+- DSM Integration
+
+Everything this package does, can be also done manually over SSH and the Synology Docker NAS Application.
 
 Please note that I can not give you support for GitLab itself, this project covers only the Synology installation/update routines.
 If you need GitLab Support you might get it here [https://forum.gitlab.com](https://forum.gitlab.com). 
@@ -17,10 +26,10 @@ You can download the SPK file in the [Releases](https://github.com/jboxberger/sy
 - DSM 6.0 and DSM 7.0 compatible
 
 This package bypass the root privileges limitation of the DSM by running the setup over ssh. The final container 
-runs exactly with the same privileges and setup as the classic non-root approach but you need to execute the installer 
+runs exactly with the same privileges and setup as the classic non-root approach, but you need to execute the installer 
 as root to get the setup done. This is a more flexible variant because this way you get the full access to the container
 settings and an update simply exports you current container configuration and imports it again with a modified GitLab image version.
-This way all your configuration remains the same and you can downgrade and upgrade as you like. As far as GitLab supports the downgrade
+This way all your configuration remains the same, and you can downgrade and upgrade as you like. As far as GitLab supports the downgrade
 with your specific dataset. The ssh installer/updater gives you also the ability to run multiple gitlab container instances with 
 different container/versions and different data shares. You can test your upgrades and migrations without any risk and downtime.
 
@@ -34,22 +43,6 @@ different container/versions and different data shares. You can test your upgrad
 
 **Multiple Advanced Instances**
 ![Advanced multiple instances](images/gitlab-ce-advanced-2.png "Advanced multiple instances")
-
-### Overview Advanced vs Classic
-| Features                                                    |         |
-|-------------------------------------------------------------|:-------:|
-| requires ssh for install                                    | &check; |
-| requires root privileges                                    | &check; |
-| gitlab can be upgraded                                      | &check; |
-| gitlab can be downgraded                                    | &check; |
-| multiple parallel gitlab instances                          | &check; |
-| start/stop over Synology Package Manager                    | &cross; |
-| start/stop over Synology Docker app                         | &check; |
-| exposed gitlab configuration and data                       | &check; |
-| container settings accessible                               | &check; |
-| access to container environment variables                   | &check; |
-| keeps container settings (ports, volumes, links) on updates | &check; |
-| GitLab files (data, config) remains on package uninstall    | &check; |
 
 ### Build instructions
 Clone this repository and execute the build.sh shell script within your terminal 
@@ -92,15 +85,13 @@ installed the SPK you need to run this command:
 #   --hostname   - the URL/Hostname of your synology
 #   --port-ssh   - ssh host port
 #   --port-http  - http host port
-#   --port-https - https host port
 
 cd /var/packages/synology-gitlab-ce/scripts && \
 sudo sh gitlab install synology-gitlab-ce \
 --version=13.4.3-ce.0 \
 --share=synology-gitlab-ce \
 --port-ssh=30022 \
---port-http=30080 \
---port-https=30443
+--port-http=30080
 ```
 
 ### Update GitLab Instance
@@ -158,7 +149,7 @@ the [GitLab Let's Encrypt](https://docs.gitlab.com/omnibus/settings/ssl.html#let
 #   --https-port - https port - default: 80443
 
 cd /var/packages/synology-gitlab-ce/scripts && \
-sudo sh gitlab-self-signed-cert install synology-gitlab-ce \
+sudo sh gitlab-self-signed-cert install "<gitlab-container-name>" \
   --hostname=xpenology --https-port=80443
 ```
 
@@ -166,13 +157,14 @@ sudo sh gitlab-self-signed-cert install synology-gitlab-ce \
 If your GitLab shortcut in your DSM got broken or points to the wrong container (port) you can fix it with this helper anytime.
 ```bash
 # Location: /var/packages/synology-gitlab-ce/scripts
-# Syntax: gitlab-link-fix [options]
+# Syntax: gitlab-link list|add|set|remove name [options]
 # options:
+#   --title      - add a title which is shown in DSM
 #   --protocol   - protocol http|https - default: http
 #   --port       - port - default: 30080
 
 cd /var/packages/synology-gitlab-ce/scripts && \
-sudo sh gitlab-link-fix --protocol=https --port=30443
+sudo sh gitlab-link add "<gitlab-container-name>" --title="My Gitlab" --protocol=https --port=30443
 ```
 
 ### Backup
@@ -218,34 +210,17 @@ sudo docker restart "<gitlab-container-name>"
 sudo docker exec -it "<gitlab-container-name>" gitlab-rake gitlab:check SANITIZE=true
 ```
 
-### Set external URL
-The Problem here is that the nginx within the container is running on port 80 and this is not exposeable to your 
-DSM without big hassle. If you are not familiar with vi editor, please see: [How to edit with vi eidtor](https://www.redhat.com/sysadmin/introduction-vi-editor).
-```bash
-# connect to gitlab container
-sudo docker exec -it "<gitlab-container-name>" bash 
-
-# edit config file 
-vi /etc/gitlab/gitlab.rb
-  # search for '# external_url 'GENERATED_EXTERNAL_URL'
-  external_url 'http://<external_url>:<external_port>'
-  # the port in the external_url force nginx to run on another port, we have to set it back to 80/443 because of our 
-  # container port mapping
-  # search for '# nginx['listen_port'] = nil'
-  nginx['listen_port'] = 80
-```
-
 ### Create GitLab Runner
 Migration can only be done within the same GitLab version. Its is basically a backup from synology-gitlab package and restore to
 the synology-gitlab-ce package.
 ```bash
 # 1) ssh into your synology and run 
 sudo ln -s /var/run/docker.sock /volume1/docker/docker.sock
-# 2) download tools/gitlab-runner.json and upload to your synology on any folder over DSM (fil should be accessible over DSM)
+# 2) download tools/gitlab-runner.json and upload to your synology on any folder over DSM (file should be accessible over DSM)
 # 3) Go to your Docker App Settings->Import and select the gitlab-runner.json and start the import
 # 4) bash into your gitlab-runner container
 docker exec -it <gitlab-runner-name> bash
-# 5) execute the registration command you get from here () http://<external_url>:<external_port>/admin/runners/new
+# 5) execute the registration command you get from your DSM http://<external_url>:<external_port>/admin/runners/new
 gitlab-runner register  --url http://<external_url>:<external_port>  --token <token>
 ```
 
@@ -256,15 +231,8 @@ into the error, the container will still run, and you can fix your data issue. B
 stop the boot-looping container.
 ```bash
 # 1) run container from command line
-sudo docker run -it --rm \
-  --name synology-gitlab-ce-debug \
-  -p 90022:90022 \ 
-  -p 90080:90080 \
-  -v /volume1/docker/<gitlab-share-folder>/data:/var/opt/gitlab \
-  -v /volume1/docker/<gitlab-share-folder>/logs:/var/log/gitlab \
-  -v /volume1/docker/<gitlab-share-folder>/config:/etc/gitlab \
-  gitlab/gitlab-ce:<gitlab-version>-ce.0 \
-  bash
+cd /var/packages/synology-gitlab-ce/scripts && \
+sudo ./gitlab-debug "<gitlab-container-name>"
 
 # 2) execute the GitLab start script
 # docker container before "17.10.0"
