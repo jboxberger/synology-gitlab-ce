@@ -25,7 +25,7 @@ help()
 # defaults
 GITLAB_TMP_DIR="$(dirname $0)/templates"
 GITLAB_HOSTNAME_DEFAULT=$(hostname)
-GITLAB_HTTPS_PORT_DEFAULT="80443"
+GITLAB_HTTPS_PORT_DEFAULT="30443"
 GITLAB_INTERNAL_SSL_DIR="/etc/gitlab/ssl"
 GITLAB_INTERNAL_CONFIG="/etc/gitlab/gitlab.rb"
 

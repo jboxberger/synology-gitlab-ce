@@ -146,11 +146,11 @@ the [GitLab Let's Encrypt](https://docs.gitlab.com/omnibus/settings/ssl.html#let
 #   container    - container name
 # options:
 #   --hostname   - gitlab hostname - default: xpenology
-#   --https-port - https port - default: 80443
+#   --port       - https port - default: 30443
 
 cd /var/packages/synology-gitlab-ce/scripts && \
 sudo sh gitlab-self-signed-cert install "<gitlab-container-name>" \
-  --hostname=xpenology --https-port=80443
+  --hostname=xpenology --port=30443
 ```
 
 ### Shortcut helper
