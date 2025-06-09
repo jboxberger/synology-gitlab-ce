@@ -106,6 +106,48 @@ sudo sh gitlab install synology-gitlab-ce \
 cd /var/packages/synology-gitlab-ce/scripts && \
 sudo sh gitlab update synology-gitlab-ce --version=13.4.5-ce.0
 ```
+### Backup
+Please refer to this documentation [here](https://docs.gitlab.com/omnibus/settings/backups.html).
+It is not recommended to store data backups in the same location as your config/credentials backup. Because of this, the
+backup process is split into two steps, the config backup and the data backup.
+```bash
+# backup gitlab configuration
+# you will find you backups in this folder 
+# /docker/<gitlab-container-share>/config/config_backup 
+sudo docker exec -it "<gitlab-container-name>" gitlab-ctl backup-etc
+
+# backup gitlab data (repositories and content)
+# you will find you backups in this folder 
+# /docker/<gitlab-container-share>/data/backups
+sudo docker exec -it "<gitlab-container-name>" gitlab-backup 
+```
+
+### Restore
+Please refer to the GitLab documentation [here](https://docs.gitlab.com/ee/raketasks/backup_restore.html#restore-gitlab).
+```bash
+# restore gitlab configuration
+# unzip your configuration backup to the config folder overwriting existing files 
+# config folder: /docker/<gitlab-container-share>/config
+# after that you can continue with the data restore
+
+# restore gitlab data
+# copy your data backup to the data/backups folder 
+# /docker/<gitlab-container-share>/data/backups
+sudo docker exec -it "<gitlab-container-name>" gitlab-ctl stop puma   
+sudo docker exec -it "<gitlab-container-name>" gitlab-ctl stop sidekiq
+# verify puma & sidekiq are down
+sudo docker exec -it "<gitlab-container-name>" gitlab-ctl status    
+# fix permissions
+sudo docker exec -it "<gitlab-container-name>" chown git:git /var/opt/gitlab/backups/1647529095_2022_03_17_13.4.3_gitlab_backup.tar
+# restore, please omit the "_gitlab_backup.tar" from the backup archive name
+sudo docker exec -it "<gitlab-container-name>" gitlab-backup restore BACKUP=1647529095_2022_03_17_13.4.3
+
+# restart the GitLab container
+sudo docker restart "<gitlab-container-name>"
+
+# check GitLab
+sudo docker exec -it "<gitlab-container-name>" gitlab-rake gitlab:check SANITIZE=true
+```
 
 ### Connect into container
 If you want to bash into your gitlab container you can do this with this command
@@ -167,61 +209,19 @@ cd /var/packages/synology-gitlab-ce/scripts && \
 sudo sh gitlab-link add "<gitlab-container-name>" --title="My Gitlab" --protocol=https --port=30443
 ```
 
-### Backup
-Please refer to this documentation [here](https://docs.gitlab.com/omnibus/settings/backups.html).
-It is not recommended to store data backups in the same location as your config/credentials backup. Because of this, the 
-backup process is split into two steps, the config backup and the data backup.
+### Inactivity shutdown
+This script helps you to shutdown your GitLab instance (and docker service) on inactivity.
 ```bash
-# backup gitlab configuration
-# you will find you backups in this folder 
-# /docker/<gitlab-container-share>/config/config_backup 
-sudo docker exec -it "<gitlab-container-name>" gitlab-ctl backup-etc
+# Location: /var/packages/synology-gitlab-ce/scripts
+# Syntax: gitlab-inactivity-shutdown <container> [options]
+# arguments:
+#   container    - container name
+# options:
+#   --seconds         - inactivity seconds - default: 3600
+#   --shutdown-docker - also shutdown the docker/container service
 
-# backup gitlab data (repositories and content)
-# you will find you backups in this folder 
-# /docker/<gitlab-container-share>/data/backups
-sudo docker exec -it "<gitlab-container-name>" gitlab-backup 
-```
-
-### Restore
-Please refer to the GitLab documentation [here](https://docs.gitlab.com/ee/raketasks/backup_restore.html#restore-gitlab).
-```bash
-# restore gitlab configuration
-# unzip your configuration backup to the config folder overwriting existing files 
-# config folder: /docker/<gitlab-container-share>/config
-# after that you can continue with the data restore
-
-# restore gitlab data
-# copy your data backup to the data/backups folder 
-# /docker/<gitlab-container-share>/data/backups
-sudo docker exec -it "<gitlab-container-name>" gitlab-ctl stop puma   
-sudo docker exec -it "<gitlab-container-name>" gitlab-ctl stop sidekiq
-# verify puma & sidekiq are down
-sudo docker exec -it "<gitlab-container-name>" gitlab-ctl status    
-# fix permissions
-sudo docker exec -it "<gitlab-container-name>" chown git:git /var/opt/gitlab/backups/1647529095_2022_03_17_13.4.3_gitlab_backup.tar
-# restore, please omit the "_gitlab_backup.tar" from the backup archive name
-sudo docker exec -it "<gitlab-container-name>" gitlab-backup restore BACKUP=1647529095_2022_03_17_13.4.3
-
-# restart the GitLab container
-sudo docker restart "<gitlab-container-name>"
-
-# check GitLab
-sudo docker exec -it "<gitlab-container-name>" gitlab-rake gitlab:check SANITIZE=true
-```
-
-### Create GitLab Runner
-Migration can only be done within the same GitLab version. Its is basically a backup from synology-gitlab package and restore to
-the synology-gitlab-ce package.
-```bash
-# 1) ssh into your synology and run 
-sudo ln -s /var/run/docker.sock /volume1/docker/docker.sock
-# 2) download tools/gitlab-runner.json and upload to your synology on any folder over DSM (file should be accessible over DSM)
-# 3) Go to your Docker App Settings->Import and select the gitlab-runner.json and start the import
-# 4) bash into your gitlab-runner container
-docker exec -it <gitlab-runner-name> bash
-# 5) execute the registration command you get from your DSM http://<external_url>:<external_port>/admin/runners/new
-gitlab-runner register  --url http://<external_url>:<external_port>  --token <token>
+cd /var/packages/synology-gitlab-ce/scripts && \
+sudo sh gitlab-inactivity-shutdown "<gitlab-container-name>" --seconds=3600 --shutdown-docker
 ```
 
 ### Docker Container Bootlooping
@@ -240,6 +240,20 @@ sudo ./gitlab-debug "<gitlab-container-name>"
 
 # docker container from "17.10.0"
 ./assets/init-container
+```
+
+### Create GitLab Runner
+Migration can only be done within the same GitLab version. Its is basically a backup from synology-gitlab package and restore to
+the synology-gitlab-ce package.
+```bash
+# 1) ssh into your synology and run 
+sudo ln -s /var/run/docker.sock /volume1/docker/docker.sock
+# 2) download tools/gitlab-runner.json and upload to your synology on any folder over DSM (file should be accessible over DSM)
+# 3) Go to your Docker App Settings->Import and select the gitlab-runner.json and start the import
+# 4) bash into your gitlab-runner container
+docker exec -it <gitlab-runner-name> bash
+# 5) execute the registration command you get from your DSM http://<external_url>:<external_port>/admin/runners/new
+gitlab-runner register  --url http://<external_url>:<external_port>  --token <token>
 ```
 
 ### Migration from [synology-gitlab](https://github.com/jboxberger/synology-gitlab) package
