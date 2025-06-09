@@ -35,14 +35,14 @@ different container/versions and different data shares. You can test your upgrad
 
 ![Advanced installer DSM image](images/gitlab-ce-advanced-1.png "Advanced installer DSM")
 
-**Install Advanced Instance**
-![Advanced installer install image](images/gitlab-ce-advanced-3.png "Advanced installer install")
+**Install Instance**
+![Install Instance image](images/gitlab-ce-advanced-3.png "Install Instanc")
 
-**Update Advanced Instance**
-![Advanced installer update image](images/gitlab-ce-advanced-4.png "Advanced installer update")
+**Update Instance**
+![Update Instance image](images/gitlab-ce-advanced-4.png "Update Instance")
 
-**Multiple Advanced Instances**
-![Advanced multiple instances](images/gitlab-ce-advanced-2.png "Advanced multiple instances")
+**Multiple Instances**
+![Multiple Instances image](images/gitlab-ce-advanced-2.png "Multiple instances")
 
 ### Build instructions
 Clone this repository and execute the build.sh shell script within your terminal 
