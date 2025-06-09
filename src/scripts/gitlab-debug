@@ -14,7 +14,7 @@ help()
    echo "  -h|--help         - dsiplays help"
    echo "  -v|--verbose      - dsiplays command"
    echo ""
-   echo "Example: gitlab-debug synology-gitlab-ce -v"
+   echo "Example: ./gitlab-debug synology-gitlab-ce -v"
    exit 0
 }
 

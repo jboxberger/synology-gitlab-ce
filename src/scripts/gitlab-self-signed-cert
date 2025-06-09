@@ -15,7 +15,7 @@ help()
    echo "  --hostname   - gitlab hostname - default: $GITLAB_HOSTNAME_DEFAULT"
    echo "  --port       - https port - default: $GITLAB_HTTPS_PORT_DEFAULT"
    echo ""
-   echo "Example: gitlab-cert install synology-gitlab-ce --hostname=$GITLAB_HOSTNAME_DEFAULT --port=$GITLAB_HTTPS_PORT_DEFAULT"
+   echo "Example: ./gitlab-self-signed-cert install synology-gitlab-ce --hostname=$GITLAB_HOSTNAME_DEFAULT --port=$GITLAB_HTTPS_PORT_DEFAULT"
    exit 0
 }
 

@@ -19,7 +19,7 @@ help()
    echo "  --port       - port - default: $GITLAB_PORT_DEFAULT"
    echo "  --quiet      - no output"
    echo
-   echo "Example: gitlab-link add synology-gitlab-ce --title=\"$GITLAB_TITLE_DEFAULT\" --protocol=$GITLAB_PROTOCOL_DEFAULT --port=$GITLAB_PORT_DEFAULT"
+   echo "Example: ./gitlab-link add synology-gitlab-ce --title=\"$GITLAB_TITLE_DEFAULT\" --protocol=$GITLAB_PROTOCOL_DEFAULT --port=$GITLAB_PORT_DEFAULT"
    exit 0
 }
 

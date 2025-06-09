@@ -26,7 +26,7 @@ help() {
    echo "options:"
    echo "  --version    - GitLab CE version e.g. 13.4.3-ce.0"
    echo
-   echo "Example: gitlab update synology-gitlab-ce --version=13.4.3-ce.0"
+   echo "Example: ./gitlab update synology-gitlab-ce --version=13.4.3-ce.0"
    exit 0
 }
 
