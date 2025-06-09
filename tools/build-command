@@ -1,0 +1,8 @@
+#!/bin/bash
+
+version="18.0.1"; \
+./build.sh --version="$version"-ce.0 --dsm=6.0 && \
+./build.sh --version="$version"-ce.0 --dsm=6.2 && \
+./build.sh --version="$version"-ce.0 --dsm=7.0 && \
+./build.sh --version="$version"-ce.0 --dsm=7.1 && \
+./build.sh --version="$version"-ce.0 --dsm=7.2
