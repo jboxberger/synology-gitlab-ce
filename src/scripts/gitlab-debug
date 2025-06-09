@@ -119,6 +119,24 @@ do
    # or do whatever with individual element of the array
 done
 
+GITLAB_OMNIBUS_CONFIG=$(docker inspect "$GITLAB_CONTAINER_NAME" | jq -r '.[].Config.Env[]' | grep "GITLAB_OMNIBUS_CONFIG")
+if [ ! -z "$GITLAB_OMNIBUS_CONFIG" ]; then
+   config=""
+   external_url=$(echo "$GITLAB_OMNIBUS_CONFIG" | sed -n "s/.*external_url '\([^']*\)'.*/\1/p")
+   if [ ! -z "$external_url" ]; then
+     config="${config}external_url '$external_url'; "
+   fi
+
+   # Extract gitlab_shell_ssh_port
+   ssh_port=$(echo "$GITLAB_OMNIBUS_CONFIG" | sed -n "s/.*gitlab_rails\['gitlab_shell_ssh_port'\] *= *\([0-9]*\).*/\1/p")
+   if [ ! -z "$ssh_port" ]; then
+     config="${config}gitlab_rails['gitlab_shell_ssh_port'] = $ssh_port; "
+   fi
+
+   DOCKER_RUN_CMD="$DOCKER_RUN_CMD -e GITLAB_OMNIBUS_CONFIG=\"$config\""
+   DOCKER_RUN_CMD_PRETTY="$DOCKER_RUN_CMD_PRETTY  -e GITLAB_OMNIBUS_CONFIG=\"$config\" \ \n"
+fi
+
 CONTAINER_IMAGE=$(docker inspect "$GITLAB_CONTAINER_NAME" | jq -r '.[].Config.Image')
 CONTAINER_CMD=$(docker inspect "$GITLAB_CONTAINER_NAME" | jq -r '.[].Config.Cmd[]')
 
