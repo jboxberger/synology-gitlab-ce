@@ -14,7 +14,7 @@ help()
     echo "  --seconds         - inactivity seconds - default: $GITLAB_INACTIVITY_SECONDS_DEFAULT"
     echo "  --shutdown-docker - also shutdown the docker/container service"
     echo
-    echo "Example: gitlab-inactivity-shutdown synology-gitlab-ce --seconds=$GITLAB_INACTIVITY_SECONDS_DEFAULT --shutdown-docker"
+    echo "Example: ./gitlab-inactivity-shutdown synology-gitlab-ce --seconds=$GITLAB_INACTIVITY_SECONDS_DEFAULT --shutdown-docker"
     exit 0
 }
 
@@ -107,7 +107,7 @@ last_log="$TMP_DIR/$GITLAB_CONTAINER_NAME.log"
 prev_log="$TMP_DIR/$GITLAB_CONTAINER_NAME.log.1.gz"
 
 # prepare file
-docker cp $GITLAB_CONTAINER_NAME:/var/log/gitlab/gitlab-rails/production_json.log "$last_log"
+docker cp $GITLAB_CONTAINER_NAME:/var/log/gitlab/gitlab-rails/production_json.log "$last_log" 2> /dev/null
 docker cp $GITLAB_CONTAINER_NAME:/var/log/gitlab/gitlab-rails/production_json.log.1.gz "$prev_log" 2> /dev/null
 
 if [ -f "$prev_log" ]; then
