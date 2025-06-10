@@ -99,7 +99,7 @@ help()
 ###########################################################
 # DEFAULT VARIABLES
 ###########################################################
-TOOLKIT_VERSION=0001
+TOOLKIT_VERSION=0002
 
 DSM_VERSION="7.1"
 GITLAB_IMAGE_NAME="gitlab/gitlab-ce"
