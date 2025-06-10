@@ -86,6 +86,8 @@ if [ ! -z "$CONTAINER_ID" ]; then
           echo "$stop_response"
           exit 1
     fi
+    # wait a second so the share is released properly after container shut-down
+    sleep 2
 fi
 
 ###########################################################
