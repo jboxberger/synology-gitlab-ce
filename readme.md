@@ -20,6 +20,27 @@ If you need GitLab Support you might get it here [https://forum.gitlab.com](http
 ### Download SPK:
 You can download the SPK file in the [Releases](https://github.com/jboxberger/synology-gitlab-ce/releases) section.
 
+### Full Tutorial:
+[<img alt="alt_text" src="images/youtube-thumbnail.png" />](https://www.youtube.com/watch?v=dwiRbM0pnrE)
+- [0:00 Intro](https://www.youtube.com/watch?v=dwiRbM0pnrE)<br>
+- [1:23 Build your own SPK](https://www.youtube.com/watch?v=dwiRbM0pnrE&t=83s)
+- [4:45 Install GitLab SPK](https://www.youtube.com/watch?v=dwiRbM0pnrE&t=285s)<br>
+- [8:00 Enable SSH](https://www.youtube.com/watch?v=dwiRbM0pnrE&t=480s)<br>
+- [9:26 Starting Gitlab Container](https://www.youtube.com/watch?v=dwiRbM0pnrE&t=566s)<br>
+- [15:40 Overwiew GitLab (Project / User / Configuration)](https://www.youtube.com/watch?v=dwiRbM0pnrE&t=940s)<br>
+- [22:42 Backup your GitLab](https://www.youtube.com/watch?v=dwiRbM0pnrE&t=1362s)<br>
+- [25:45 Clone GitLab](https://www.youtube.com/watch?v=dwiRbM0pnrE&t=1545s)<br>
+- [30:30 Shorcut Helper](https://www.youtube.com/watch?v=dwiRbM0pnrE&t=1830s)<br>
+- [35:29 Mess something up](https://www.youtube.com/watch?v=dwiRbM0pnrE&t=2129s)<br>
+- [38:15 Restore Backup](https://www.youtube.com/watch?v=dwiRbM0pnrE&t=2295s)<br>
+- [47:30 Upgrade/Update GitLab](https://www.youtube.com/watch?v=dwiRbM0pnrE&t=2850s)<br>
+- [1:00:45 Dealing with migration errors (GitLab Debug)](https://www.youtube.com/watch?v=dwiRbM0pnrE&t=3645s)<br>
+- [1:11:43 Continue Upgrade/Update GitLab](https://www.youtube.com/watch?v=dwiRbM0pnrE&t=4303s)<br>
+- [1:13:35 Upgrade/Update (closing words)](https://www.youtube.com/watch?v=dwiRbM0pnrE&t=4415s)<br>
+- [1:15:27 Inactivity Shutdown Feature](https://www.youtube.com/watch?v=dwiRbM0pnrE&t=4527s)<br>
+- [1:23:03 Self-Signed SSL Certificate](https://www.youtube.com/watch?v=dwiRbM0pnrE&t=4983s)<br>
+- [1:32:25 Uninstall GitLab](https://www.youtube.com/watch?v=dwiRbM0pnrE&t=5545s)<br>
+
 ### Hardware Requirements:
 - 1 CPU core ( 2 cores is recommended )
 - 2 GB RAM ( 4GB RAM is recommended )
