@@ -77,7 +77,7 @@ Except "jq" there are no special packages/binaries required.
 #               available versions is shown
 #   --dsm     - target DSM version (6.0-6.2|7.0-7.3) - default: 7.3"
 
-./build.sh --version=18.8.4-ce.0 --dsm=7.7
+./build.sh --version=18.8.4-ce.0 --dsm=7.3
 ```
 
 ### GitLab Upgrade Path
