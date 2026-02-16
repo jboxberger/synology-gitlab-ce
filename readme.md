@@ -89,6 +89,9 @@ consume over 4GB RAM, the update should be complete.
 
 see: https://gitlab-com.gitlab.io/support/toolbox/upgrade-path/?edition=ce
 
+Before continue upgrading to the next version, please ensure that all GitLab migrations werde completed successfully.
+![GitLab Migrations](images/gitlab-ce-migrations.png "GitLab Migrations")
+
 
 ### Install GitLab Instance
 Download the desired SPK Version and install it. If you have a previous version of Gitlab installed, just install the 
