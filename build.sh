@@ -90,9 +90,9 @@ help()
    echo "  --version - GitLab CE version e.g. 13.4.3-ce.0, "
    echo "              when no version given, a selection list of the latest"
    echo "              available versions is shown"
-   echo "  --dsm     - target DSM version (6.0-6.2|7.0-7.2) - default: 7.1"
+   echo "  --dsm     - target DSM version (6.0-6.2|7.0-7.3) - default: 7.2"
    echo
-   echo "Example: build --version=13.4.3-ce.0 --dsm=7.1"
+   echo "Example: build --version=13.4.3-ce.0 --dsm=7.3"
    exit 0
 }
 
@@ -101,7 +101,7 @@ help()
 ###########################################################
 TOOLKIT_VERSION=0002
 
-DSM_VERSION="7.1"
+DSM_VERSION="7.3"
 GITLAB_IMAGE_NAME="gitlab/gitlab-ce"
 GITLAB_IMAGE_VERSION=""
 
@@ -133,7 +133,7 @@ done
 eval set -- "$PARAMS"
 
 # Validate DSM version
-DSM_VERSION_VALID=$([[ "$DSM_VERSION" =~ ^[6-7]\.[0-2]$ ]] && echo "yes")
+DSM_VERSION_VALID=$([[ "$DSM_VERSION" =~ ^[6-7]\.[0-3]$ ]] && echo "yes")
 if [ "$DSM_VERSION_VALID" != "yes" ]; then
   read -ep "DSM version $DSM_VERSION seems invalid, continue anyway? (y/n): " DSM_VERSION_VALID
   if [ -z "$DSM_VERSION_VALID" ] || [ "$DSM_VERSION_VALID" != "y" ] && [ "$DSM_VERSION_VALID" != "yes" ] ; then
