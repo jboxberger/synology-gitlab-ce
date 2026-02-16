@@ -44,7 +44,7 @@ You can download the SPK file in the [Releases](https://github.com/jboxberger/sy
 ### Hardware Requirements:
 - 1 CPU core ( 2 cores is recommended )
 - 2 GB RAM ( 4GB RAM is recommended )
-- DSM 6.0 and DSM 7.0 compatible
+- DSM 6.0 and DSM 7.0-7.3 compatible
 
 This package bypass the root privileges limitation of the DSM by running the setup over ssh. The final container 
 runs exactly with the same privileges and setup as the classic non-root approach, but you need to execute the installer 
@@ -89,7 +89,7 @@ consume over 4GB RAM, the update should be complete.
 
 see: https://gitlab-com.gitlab.io/support/toolbox/upgrade-path/?edition=ce
 
-Before continue upgrading to the next version, please ensure that all GitLab migrations werde completed successfully.
+Before continue upgrading to the next version, please ensure that all GitLab migrations were completed successfully.
 ![GitLab Migrations](images/gitlab-ce-migrations.png "GitLab Migrations")
 
 
