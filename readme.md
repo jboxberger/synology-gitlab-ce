@@ -72,12 +72,12 @@ Except "jq" there are no special packages/binaries required.
 ```bash
 # Syntax: build.sh [options]
 # options:
-#   --version - GitLab CE version e.g. 13.4.3-ce.0, 
+#   --version - GitLab CE version e.g. 18.8.4-ce.0, 
 #               when no version given, a selection list of the latest
 #               available versions is shown
-#   --dsm     - target DSM version (6.0-6.2|7.0-7.2) - default: 7.1"
+#   --dsm     - target DSM version (6.0-6.2|7.0-7.3) - default: 7.3"
 
-./build.sh --version=13.4.3-ce.0 --dsm=7.1
+./build.sh --version=18.8.4-ce.0 --dsm=7.7
 ```
 
 ### GitLab Upgrade Path
@@ -102,7 +102,7 @@ installed the SPK you need to run this command:
 # arguments:
 #   container    - container name
 # options:
-#   --version    - GitLab CE version e.g. 13.4.3-ce.0
+#   --version    - GitLab CE version e.g. 18.8.4-ce.0
 #   --share      - destination folder which will contain shared gitlab files
 #   --hostname   - the URL/Hostname of your synology
 #   --port-ssh   - ssh host port
@@ -110,7 +110,7 @@ installed the SPK you need to run this command:
 
 cd /var/packages/synology-gitlab-ce/scripts && \
 sudo sh gitlab install synology-gitlab-ce \
---version=13.4.3-ce.0 \
+--version=18.8.4-ce.0 \
 --share=synology-gitlab-ce \
 --port-ssh=30022 \
 --port-http=30080
@@ -123,7 +123,7 @@ sudo sh gitlab install synology-gitlab-ce \
 # arguments:
 #   container    - container name
 # options:
-#   --version    - GitLab CE version e.g. 13.4.3-ce.0
+#   --version    - GitLab CE version e.g. 18.8.4-ce.0
 
 cd /var/packages/synology-gitlab-ce/scripts && \
 sudo sh gitlab update synology-gitlab-ce --version=13.4.5-ce.0
@@ -160,9 +160,9 @@ sudo docker exec -it "<gitlab-container-name>" gitlab-ctl stop sidekiq
 # verify puma & sidekiq are down
 sudo docker exec -it "<gitlab-container-name>" gitlab-ctl status    
 # fix permissions
-sudo docker exec -it "<gitlab-container-name>" chown git:git /var/opt/gitlab/backups/1647529095_2022_03_17_13.4.3_gitlab_backup.tar
+sudo docker exec -it "<gitlab-container-name>" chown git:git /var/opt/gitlab/backups/1647529095_2022_03_17_18.8.4_gitlab_backup.tar
 # restore, please omit the "_gitlab_backup.tar" from the backup archive name
-sudo docker exec -it "<gitlab-container-name>" gitlab-backup restore BACKUP=1647529095_2022_03_17_13.4.3
+sudo docker exec -it "<gitlab-container-name>" gitlab-backup restore BACKUP=1647529095_2022_03_17_18.8.4
 
 # restart the GitLab container
 sudo docker restart "<gitlab-container-name>"
